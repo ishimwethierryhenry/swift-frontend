@@ -10,21 +10,30 @@ const SERVER_URL = variables.SERVER_URL;
 
 export const auth = createAsyncThunk(
   "users/login",
-  async (submiData, { dispatch }) => {
+  async (submitData, { dispatch }) => {
     try {
       const response = await axios({
         method: "post",
         url: `${SERVER_URL}/users/login`,
-        data: { email: submiData.email, pwd: submiData.password },
+        data: { email: submitData.email, pwd: submitData.pwd },
       });
+
+      console.log('🔍 Frontend received response:', response.data); // Add this
+
 
       if (response.status == 200) {
         const { token } = response.data;
+
+        console.log('🔍 Token received:', token); // Add this
+
 
         if (token) {
           localStorage.setItem("token", token);
 
           const data = tokenDec(token);
+
+          console.log('🔍 Decoded token data:', data); // Add this
+
 
           if (data) {
             dispatch(userActions.setUserData(data.user));

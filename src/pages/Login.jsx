@@ -9,6 +9,11 @@ import { useNavigate } from "react-router-dom";
 export default function Login() {
   const dispatch = useDispatch();
   const authHandler = useSelector((state) => state.login);
+  // Add this for debugging
+
+  useEffect(() => {
+  console.log('🔍 Auth Handler State:', authHandler);
+  }, [authHandler]);
   const navigation = useNavigate();
 
   const [isVisible, setIsVisible] = useState(false);
@@ -45,10 +50,10 @@ export default function Login() {
       e.preventDefault();
       const formData = {
         email: String(loginData.email),
-        password: String(loginData.password),
+        pwd: String(loginData.password), // ✅ Fixed: Changed 'password' to 'pwd' to match backend
       };
 
-      if (validateForm(formData)) {
+      if (validateForm({ email: formData.email, password: loginData.password })) {
         dispatch(auth(formData));
       }
     } catch (error) {
