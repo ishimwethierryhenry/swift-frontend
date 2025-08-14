@@ -64,10 +64,33 @@ export const AddOperators = () => {
     }));
   };
 
+  // Clear form when operator registration is successful
+  useEffect(() => {
+    // Adjust this condition based on your Redux state structure
+    // Common patterns: success, isSuccess, status === 'fulfilled'
+    if (addOperatorsState.success && !addOperatorsState.loading) {
+      // Clear all form fields
+      setSubmitData({
+        fname: "",
+        lname: "",
+        location: "",
+        email: "",
+        phone: "",
+        gender: "",
+      });
+      
+      // Clear any validation errors
+      setErrors({});
+      
+      // Optional: You can add a success notification here
+      // toast.success("Operator added successfully!");
+    }
+  }, [addOperatorsState.success, addOperatorsState.loading]);
+
   useEffect(() => {
     dispatch(activeLinksActions.setActiveLink("Operators"));
     setIsVisible(true);
-  }, []);
+  }, [dispatch]);
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 overflow-hidden relative">

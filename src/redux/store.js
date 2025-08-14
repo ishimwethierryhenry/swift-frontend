@@ -11,6 +11,8 @@ import operatorAddSlice from "./slices/operatorAddSlice";
 import locationsSlice from "./slices/locationsSlice";
 import poolUpdateSlice from "./slices/poolUpdateSlice";
 import forecastSlice from "./slices/forecastSlice";
+import deletePoolSlice from "./slices/deletePoolSlice";
+import deleteOperatorSlice from "./slices/deleteOperatorSlice"; // Add this import
 
 const store = configureStore({
   reducer: {
@@ -26,6 +28,8 @@ const store = configureStore({
     locations: locationsSlice.reducer,
     poolUpdate: poolUpdateSlice.reducer,
     forecast: forecastSlice.reducer,
+    deletePool: deletePoolSlice.reducer,
+    deleteOperator: deleteOperatorSlice.reducer, // Add this line
   },
 });
 

@@ -17,7 +17,7 @@ export const registerOperator = createAsyncThunk("users/add", async (data) => {
     });
 
     if (response.status == 201) {
-      toast.success("User registered", {
+      toast.success("Pool Operator registered Successfully!", {
         position: "top-right",
         autoClose: 4000,
         hideProgressBar: false,

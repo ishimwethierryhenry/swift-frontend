@@ -7,7 +7,10 @@ import { poolsAssigned } from "../redux/slices/poolsAssignedSlice";
 import { poolsAvailable } from "../redux/slices/poolsByLocationSlice";
 import { operatorsAvailable } from "../redux/slices/operatorsByLocationSlice";
 import { ModalDeleteOperator } from "../components/ModalDeleteOperator";
+// import { ModalOperator } from "../components/ModalOperator"; // Commented out until component is created
 import { getLocations } from "../redux/slices/locationsSlice";
+import { deletePool, resetDeletePoolState } from "../redux/slices/deletePoolSlice";
+import { deleteOperator, resetDeleteOperatorState } from "../redux/slices/deleteOperatorSlice";
 
 export const Dashboard = () => {
   const userState = useSelector((state) => state.user.user);
@@ -18,40 +21,55 @@ export const Dashboard = () => {
   const operatorsAvailableState = useSelector(
     (state) => state.operatorsByLocation
   );
+  const deletePoolState = useSelector((state) => state.deletePool || {});
+  const deleteOperatorState = useSelector((state) => state.deleteOperator || {});
 
   const dispatch = useDispatch();
   const userId = localStorage.getItem("user_id");
   const userRole = localStorage.getItem("user_role");
   const userLocation = localStorage.getItem("user_location");
 
+  // Function to refresh data based on user role
+  const refreshDashboardData = () => {
+    setIsRefreshing(true);
+    if (userRole === "operator" && userId) {
+      dispatch(poolsAssigned(userId));
+    } else if (userRole === "admin" && userLocation) {
+      dispatch(poolsAvailable(userLocation));
+      dispatch(operatorsAvailable(userLocation));
+    } else if (userRole === "overseer") {
+      dispatch(getLocations());
+    }
+    
+    // Hide refresh indicator after 1 second
+    setTimeout(() => setIsRefreshing(false), 1000);
+  };
+
   const [isVisible, setIsVisible] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [poolEditModal, setPoolEditModal] = useState({
     id: null,
     open: false,
     data: null,
   });
   const [locationModal, setLocationModal] = useState({ id: null, open: false });
-  const [pools, setPools] = useState([
-    { name: "pool01", depth: "1.2m", length: "9m", width: "4.5m", status: "Offline" },
-    { name: "pool02", depth: "1.2m", length: "12m", width: "6m", status: "Offline" },
-    { name: "Pool3", depth: "1.5m", length: "9m", width: "4.5m", status: "Offline" }
-  ]);
-  const [operators, setOperators] = useState([
-    { firstName: "John", lastName: "Doe", phone: "0783726894", email: "john@gmail.com", location: "serena" }
-  ]);
-  const [locations, setLocations] = useState([
-    { name: "Olympic Location", pools: 3, operators: 1 },
-    { name: "Downtown Location", pools: 2, operators: 2 },
-    { name: "Uptown Location", pools: 4, operators: 3 }
-  ]);
+  const [pools, setPools] = useState([]);
+  const [operators, setOperators] = useState([]);
+  const [locations, setLocations] = useState([]);
 
   const [poolDeleteModal, setPoolDeleteModal] = useState({
     id: null,
     open: false,
   });
+  const [operatorEditModal, setOperatorEditModal] = useState({
+    id: null,
+    open: false,
+    data: null,
+  });
   const [operatorDeleteModal, setOperatorDeleteModal] = useState({
     id: null,
     open: false,
+    data: null,
   });
 
   const handleDelete = (id) => {};
@@ -61,6 +79,57 @@ export const Dashboard = () => {
   const handleView = (location) => {
     setLocationModal({ id: location.name, open: true });
   };
+  const handleViewPool = (pool) => {
+    // You can implement pool viewing logic here
+    // For now, let's use the same modal as edit but in view-only mode
+    setPoolEditModal({ id: pool.name, open: true, data: { ...pool, viewOnly: true } });
+  };
+  const handleDeletePool = (pool) => {
+    setPoolDeleteModal({ id: pool.id || pool._id, open: true, data: pool });
+  };
+
+  const handleViewOperator = (operator) => {
+    // Temporary solution: just log the operator data
+    console.log("View operator:", operator);
+    alert(`Viewing operator: ${operator.fname || 'N/A'} ${operator.lname || ''}\nEmail: ${operator.email || 'N/A'}`);
+  };
+  
+  const handleEditOperator = (operator) => {
+    // Temporary solution: just log the operator data
+    console.log("Edit operator:", operator);
+    alert(`Edit operator: ${operator.fname || 'N/A'} ${operator.lname || ''}\nEmail: ${operator.email || 'N/A'}`);
+  };
+  
+  const handleDeleteOperator = (operator) => {
+    setOperatorDeleteModal({ id: operator.id || operator._id, open: true, data: operator });
+  };
+
+  const confirmDeleteOperator = async (operatorId) => {
+    try {
+      // You'll need to create a deleteOperator Redux action similar to deletePool
+      // await dispatch(deleteOperator(operatorId));
+      console.log("Delete operator with ID:", operatorId);
+      // For now, just close the modal - you can implement the actual delete later
+      setOperatorDeleteModal({ id: null, open: false, data: null });
+    } catch (error) {
+      console.error("Failed to delete operator:", error);
+    }
+  };
+
+  // Handle delete pool success - refresh the pools list
+  useEffect(() => {
+    if (deletePoolState?.serverResponded && deletePoolState?.response) {
+      // Refresh pools list based on user role
+      if (userRole === "operator") {
+        dispatch(poolsAssigned(userId));
+      } else if (userRole === "admin") {
+        dispatch(poolsAvailable(userLocation));
+      }
+      
+      // Reset delete state
+      dispatch(resetDeletePoolState());
+    }
+  }, [deletePoolState?.serverResponded, deletePoolState?.response, userRole, userId, userLocation, dispatch]);
 
   useEffect(() => {
     setIsVisible(true);
@@ -101,6 +170,23 @@ export const Dashboard = () => {
     }
   }, []);
 
+  // Auto-refresh dashboard data every 3 seconds
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      if (userRole === "operator" && userId) {
+        dispatch(poolsAssigned(userId));
+      } else if (userRole === "admin" && userLocation) {
+        dispatch(poolsAvailable(userLocation));
+        dispatch(operatorsAvailable(userLocation));
+      } else if (userRole === "overseer") {
+        dispatch(getLocations());
+      }
+    }, 3000); // Refresh every 3 seconds
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(refreshInterval);
+  }, [userRole, userId, userLocation, dispatch]);
+
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 relative overflow-x-hidden">
       {/* Animated Background Elements - Responsive */}
@@ -108,22 +194,6 @@ export const Dashboard = () => {
         <div className="absolute top-5 left-5 sm:top-10 sm:left-10 md:top-20 md:left-20 w-24 h-24 sm:w-32 sm:h-32 md:w-96 md:h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse"></div>
         <div className="absolute top-10 right-5 sm:top-20 sm:right-10 md:top-40 md:right-20 w-24 h-24 sm:w-32 sm:h-32 md:w-96 md:h-96 bg-cyan-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse animation-delay-2000"></div>
         <div className="absolute bottom-5 left-10 sm:bottom-10 sm:left-20 md:bottom-20 md:left-40 w-24 h-24 sm:w-32 sm:h-32 md:w-96 md:h-96 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse animation-delay-4000"></div>
-      </div>
-
-      {/* Floating Water Bubbles - Responsive */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {[...Array(6)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-2 h-2 sm:w-3 sm:h-3 md:w-4 md:h-4 bg-cyan-300 rounded-full opacity-20 animate-bounce"
-            style={{
-              left: `${15 + i * 12}%`,
-              top: `${25 + i * 8}%`,
-              animationDelay: `${i * 0.7}s`,
-              animationDuration: `${4 + i * 0.3}s`
-            }}
-          ></div>
-        ))}
       </div>
 
       {/* Scrollable Content Container */}
@@ -135,6 +205,14 @@ export const Dashboard = () => {
             <div className="text-center">
               <h1 className="font-bold text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-white mb-2 md:mb-4">
                 Dashboard Overview
+                {isRefreshing && (
+                  <span className="ml-3 inline-block">
+                    <svg className="animate-spin h-6 w-6 text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </span>
+                )}
               </h1>
               <div className="w-16 sm:w-20 md:w-32 h-1 bg-gradient-to-r from-cyan-400 to-blue-500 mx-auto rounded-full"></div>
             </div>
@@ -180,23 +258,34 @@ export const Dashboard = () => {
                         <tbody>
                           {pools.map((pool, index) => (
                             <tr key={index} className="border-b border-white/10">
-                              <td className="p-3 text-sm">{pool.name}</td>
-                              <td className="p-3 text-sm">{pool.depth}</td>
-                              <td className="p-3 text-sm">{pool.length}</td>
-                              <td className="p-3 text-sm">{pool.width}</td>
+                              <td className="p-3 text-sm">{pool.name || 'N/A'}</td>
+                              <td className="p-3 text-sm">{pool.depth || 'N/A'}</td>
+                              <td className="p-3 text-sm">{pool.l || 'N/A'}</td>
+                              <td className="p-3 text-sm">{pool.w || 'N/A'}</td>
                               <td className="p-3">
                                 <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs">
-                                  {pool.status}
+                                  {pool.status || 'Unknown'}
                                 </span>
                               </td>
                               <td className="p-3">
                                 <div className="flex gap-2">
-                                  <button className="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600">View</button>
+                                  <button 
+                                    onClick={() => handleViewPool(pool)}
+                                    className="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600"
+                                  >
+                                    View
+                                  </button>
                                   <button 
                                     onClick={() => handleEdit(pool)}
                                     className="bg-yellow-500 text-white px-3 py-1 rounded text-xs hover:bg-yellow-600"
                                   >
                                     Edit
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeletePool(pool)}
+                                    className="bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600"
+                                  >
+                                    Delete
                                   </button>
                                 </div>
                               </td>
@@ -211,32 +300,43 @@ export const Dashboard = () => {
                       {pools.map((pool, index) => (
                         <div key={index} className="bg-white/5 rounded-lg p-3 sm:p-4 border border-white/10">
                           <div className="flex justify-between items-start mb-3">
-                            <h3 className="text-white font-semibold text-base sm:text-lg">{pool.name}</h3>
+                            <h3 className="text-white font-semibold text-base sm:text-lg">{pool.name || 'N/A'}</h3>
                             <span className="bg-red-500 text-white px-2 sm:px-3 py-1 rounded-full text-xs">
-                              {pool.status}
+                              {pool.status || 'Unknown'}
                             </span>
                           </div>
                           <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4 text-xs sm:text-sm">
                             <div>
                               <span className="text-gray-300 block">Depth</span>
-                              <p className="text-white font-medium">{pool.depth}</p>
+                              <p className="text-white font-medium">{pool.depth || 'N/A'}</p>
                             </div>
                             <div>
                               <span className="text-gray-300 block">Length</span>
-                              <p className="text-white font-medium">{pool.length}</p>
+                              <p className="text-white font-medium">{pool.l || 'N/A'}</p>
                             </div>
                             <div>
                               <span className="text-gray-300 block">Width</span>
-                              <p className="text-white font-medium">{pool.width}</p>
+                              <p className="text-white font-medium">{pool.w || 'N/A'}</p>
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <button className="bg-gray-500 text-white px-3 sm:px-4 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-gray-600">View</button>
+                            <button 
+                              onClick={() => handleViewPool(pool)}
+                              className="bg-gray-500 text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-gray-600"
+                            >
+                              View
+                            </button>
                             <button 
                               onClick={() => handleEdit(pool)}
-                              className="bg-yellow-500 text-white px-3 sm:px-4 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-yellow-600"
+                              className="bg-yellow-500 text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-yellow-600"
                             >
                               Edit
+                            </button>
+                            <button 
+                              onClick={() => handleDeletePool(pool)}
+                              className="bg-red-500 text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-red-600"
+                            >
+                              Delete
                             </button>
                           </div>
                         </div>
@@ -282,16 +382,39 @@ export const Dashboard = () => {
                             <th className="text-left p-3 font-semibold text-sm">PHONE NUMBER</th>
                             <th className="text-left p-3 font-semibold text-sm">EMAIL</th>
                             <th className="text-left p-3 font-semibold text-sm">LOCATION</th>
+                            <th className="text-left p-3 font-semibold text-sm">ACTIONS</th>
                           </tr>
                         </thead>
                         <tbody>
                           {operators.map((operator, index) => (
                             <tr key={index} className="border-b border-white/10">
-                              <td className="p-3 text-sm">{operator.firstName}</td>
-                              <td className="p-3 text-sm">{operator.lastName}</td>
-                              <td className="p-3 text-sm">{operator.phone}</td>
-                              <td className="p-3 text-sm">{operator.email}</td>
-                              <td className="p-3 text-sm">{operator.location}</td>
+                              <td className="p-3 text-sm">{operator.fname || 'N/A'}</td>
+                              <td className="p-3 text-sm">{operator.lname || 'N/A'}</td>
+                              <td className="p-3 text-sm">{operator.phone || 'N/A'}</td>
+                              <td className="p-3 text-sm">{operator.email || 'N/A'}</td>
+                              <td className="p-3 text-sm">{operator.location || 'N/A'}</td>
+                              <td className="p-3">
+                                <div className="flex gap-2">
+                                  <button 
+                                    onClick={() => handleViewOperator(operator)}
+                                    className="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600"
+                                  >
+                                    View
+                                  </button>
+                                  <button 
+                                    onClick={() => handleEditOperator(operator)}
+                                    className="bg-yellow-500 text-white px-3 py-1 rounded text-xs hover:bg-yellow-600"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteOperator(operator)}
+                                    className="bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -304,22 +427,42 @@ export const Dashboard = () => {
                         <div key={index} className="bg-white/5 rounded-lg p-3 sm:p-4 border border-white/10">
                           <div className="mb-3">
                             <h3 className="text-white font-semibold text-base sm:text-lg">
-                              {operator.firstName} {operator.lastName}
+                              {operator.fname || 'N/A'} {operator.lname || ''}
                             </h3>
                           </div>
-                          <div className="space-y-2 text-xs sm:text-sm">
+                          <div className="space-y-2 text-xs sm:text-sm mb-4">
                             <div className="flex justify-between">
                               <span className="text-gray-300">Phone:</span>
-                              <span className="text-white">{operator.phone}</span>
+                              <span className="text-white">{operator.phone || 'N/A'}</span>
                             </div>
                             <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                               <span className="text-gray-300">Email:</span>
-                              <span className="text-white break-all text-right">{operator.email}</span>
+                              <span className="text-white break-all text-right">{operator.email || 'N/A'}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-300">Location:</span>
-                              <span className="text-white">{operator.location}</span>
+                              <span className="text-white">{operator.location || 'N/A'}</span>
                             </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={() => handleViewOperator(operator)}
+                              className="bg-gray-500 text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-gray-600"
+                            >
+                              View
+                            </button>
+                            <button 
+                              onClick={() => handleEditOperator(operator)}
+                              className="bg-yellow-500 text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-yellow-600"
+                            >
+                              Edit
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteOperator(operator)}
+                              className="bg-red-500 text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-red-600"
+                            >
+                              Delete
+                            </button>
                           </div>
                         </div>
                       ))}
@@ -370,23 +513,34 @@ export const Dashboard = () => {
                         <tbody>
                           {pools.map((pool, index) => (
                             <tr key={index} className="border-b border-white/10">
-                              <td className="p-3 text-sm">{pool.name}</td>
-                              <td className="p-3 text-sm">{pool.depth}</td>
-                              <td className="p-3 text-sm">{pool.length}</td>
-                              <td className="p-3 text-sm">{pool.width}</td>
+                              <td className="p-3 text-sm">{pool.name || 'N/A'}</td>
+                              <td className="p-3 text-sm">{pool.depth || 'N/A'}</td>
+                              <td className="p-3 text-sm">{pool.l || 'N/A'}</td>
+                              <td className="p-3 text-sm">{pool.w || 'N/A'}</td>
                               <td className="p-3">
                                 <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs">
-                                  {pool.status}
+                                  {pool.status || 'Unknown'}
                                 </span>
                               </td>
                               <td className="p-3">
                                 <div className="flex gap-2">
-                                  <button className="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600">View</button>
+                                  <button 
+                                    onClick={() => handleViewPool(pool)}
+                                    className="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600"
+                                  >
+                                    View
+                                  </button>
                                   <button 
                                     onClick={() => handleEdit(pool)}
                                     className="bg-yellow-500 text-white px-3 py-1 rounded text-xs hover:bg-yellow-600"
                                   >
                                     Edit
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeletePool(pool)}
+                                    className="bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600"
+                                  >
+                                    Delete
                                   </button>
                                 </div>
                               </td>
@@ -421,12 +575,23 @@ export const Dashboard = () => {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <button className="bg-gray-500 text-white px-3 sm:px-4 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-gray-600">View</button>
+                            <button 
+                              onClick={() => handleViewPool(pool)}
+                              className="bg-gray-500 text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-gray-600"
+                            >
+                              View
+                            </button>
                             <button 
                               onClick={() => handleEdit(pool)}
-                              className="bg-yellow-500 text-white px-3 sm:px-4 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-yellow-600"
+                              className="bg-yellow-500 text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-yellow-600"
                             >
                               Edit
+                            </button>
+                            <button 
+                              onClick={() => handleDeletePool(pool)}
+                              className="bg-red-500 text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-red-600"
+                            >
+                              Delete
                             </button>
                           </div>
                         </div>
@@ -608,16 +773,36 @@ export const Dashboard = () => {
           Fn={setPoolEditModal}
         />
       )}
-      {poolDeleteModal.open && <ModalDeletePool Fn={setPoolDeleteModal} />}
+      {poolDeleteModal.open && (
+        <ModalDeletePool 
+          Fn={setPoolDeleteModal} 
+          data={poolDeleteModal.data}
+          onConfirmDelete={confirmDeletePool}
+          loading={deletePoolState?.loading || false}
+        />
+      )}
+      {/* Temporarily commented out until ModalOperator component is created
+      {operatorEditModal.open && (
+        <ModalOperator
+          data={operatorEditModal.data}
+          Fn={setOperatorEditModal}
+        />
+      )}
+      */}
+      {operatorDeleteModal.open && (
+        <ModalDeleteOperator 
+          Fn={setOperatorDeleteModal}
+          data={operatorDeleteModal.data}
+          onConfirmDelete={confirmDeleteOperator}
+          loading={deleteOperatorState?.loading || false}
+        />
+      )}
       {locationModal.open && (
         <ModalLocation
           role={userRole}
           location={locationModal.id}
           Fn={setLocationModal}
         />
-      )}
-      {operatorDeleteModal.open && (
-        <ModalDeleteOperator Fn={setOperatorDeleteModal} />
       )}
 
       {/* Custom Styles */}
