@@ -7,6 +7,7 @@ import { useParams } from "react-router-dom";
 import MQTTlive from "../service/MQTTlive";
 import TdsChart from "../components/TdsChart";
 import TbdtChart from "../components/TbdtChart";
+import logo2 from "../assets/logo2.png"; // ✅ Added proper import
 
 function Pool() {
   const MAX_DATA_POINTS = 120;
@@ -123,7 +124,7 @@ function Pool() {
         <div className="flex flex-row justify-center items-center group mb-2 sm:mb-0">
           <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full flex items-center justify-center mr-2 sm:mr-3 group-hover:scale-110 transition-transform duration-300">
             <img 
-              src="src/assets/logo2.png"
+              src={logo2} // ✅ Using imported variable instead of string path
               alt="SWIFT Logo"
               className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 object-cover rounded-full"
             />

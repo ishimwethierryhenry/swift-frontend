@@ -14,12 +14,13 @@ import {
   ChevronRight,
   User
 } from "lucide-react";
+import logo2 from "../assets/logo2.png"; // ✅ Added proper import
 
 // Swimming Pool Logo Component
 const SwimmingPoolLogo = ({ size = 36 }) => (
   <div className="relative overflow-hidden rounded-lg">
     <img 
-      src="src/assets/logo2.png"
+      src={logo2} // ✅ Using imported variable instead of string path
       alt="SWIFT Logo"
       className="w-full h-full object-cover rounded-lg"
       style={{ width: size, height: size }}
