@@ -1,4 +1,4 @@
-// 1. UPDATED Sidebar.jsx
+// UPDATED Sidebar.jsx - Compact Guest Notice
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
@@ -8,7 +8,7 @@ import { GrUserManager } from "react-icons/gr";
 import { BiSolidNetworkChart } from "react-icons/bi";
 import { FaHistory } from "react-icons/fa";
 import { IoMdWater } from "react-icons/io";
-import { FiEye } from "react-icons/fi"; // Added for guest icon
+import { FiEye } from "react-icons/fi";
 import { useDispatch } from "react-redux";
 import { activeLinksActions } from "../redux/slices/activeLinkSlice";
 import { 
@@ -45,8 +45,8 @@ export const SideNav = ({ label, destination, active = false, isCollapsed }) => 
       case "Monitor":
         return <IoMdWater className={iconClass} size={size} />;
       case "Pools":
-      // case "View Pools": // Added for guest access
-      //   return <LiaSwimmingPoolSolid className={iconClass} size={size} />;
+      case "View Pools": // Added for guest access
+        return <LiaSwimmingPoolSolid className={iconClass} size={size} />;
       case "Operators":
         return <GrUserManager className={iconClass} size={size} />;
       case "Prediction":
@@ -290,19 +290,25 @@ export const Sidebar = () => {
             )}
           </div>
 
-          {/* Guest Access Notice */}
-          {userRole === "guest" && (
-            <div className="p-2 lg:p-4 border-t border-white/10">
-              <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+          {/* Compact Guest Access Notice */}
+          {userRole === "guest" && !isCollapsed && (
+            <div className="px-3 lg:px-4 pb-2 lg:pb-4">
+              <div className="bg-gray-700/30 border border-gray-600/50 rounded-lg p-2">
                 <div className="flex items-center space-x-2">
-                  <FiEye className="text-amber-400" size={16} />
-                  <p className="text-xs text-amber-300 font-medium">
-                    Guest Access
+                  <FiEye className="text-gray-400" size={12} />
+                  <p className="text-xs text-gray-300 font-medium">
+                    Guest • Read-only
                   </p>
                 </div>
-                <p className="text-xs text-amber-200 mt-1">
-                  Read-only access to pool data
-                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Icon-only guest indicator for collapsed state */}
+          {userRole === "guest" && isCollapsed && (
+            <div className="px-2 pb-2">
+              <div className="bg-gray-700/30 border border-gray-600/50 rounded-lg p-2 flex justify-center">
+                <FiEye className="text-gray-400" size={14} />
               </div>
             </div>
           )}
