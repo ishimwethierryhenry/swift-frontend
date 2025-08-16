@@ -1,3 +1,4 @@
+// 3. UPDATED Pool.jsx
 import React, { useEffect, useState } from "react";
 import PhChart from "../components/PhChart";
 import ParameterCard from "../components/ParameterCard";
@@ -7,7 +8,8 @@ import { useParams } from "react-router-dom";
 import MQTTlive from "../service/MQTTlive";
 import TdsChart from "../components/TdsChart";
 import TbdtChart from "../components/TbdtChart";
-import logo2 from "../assets/logo2.png"; // ✅ Added proper import
+import logo2 from "../assets/logo2.png";
+import { FiEye, FiShield } from "react-icons/fi";
 
 function Pool() {
   const MAX_DATA_POINTS = 120;
@@ -15,6 +17,10 @@ function Pool() {
   let { topic } = useParams();
   const dispatch = useDispatch();
   const predictionState = useSelector((state) => state.prediction);
+  
+  // Get user role for access control
+  const userRole = localStorage.getItem("user_role");
+  const userLocation = localStorage.getItem("user_location");
 
   const [isVisible, setIsVisible] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -27,7 +33,7 @@ function Pool() {
   };
 
   const handlePrediction = () => {
-    if (predictionState.loading) return;
+    if (predictionState.loading || userRole === "guest") return;
     dispatch(predictionNow());
   };
 
@@ -124,7 +130,7 @@ function Pool() {
         <div className="flex flex-row justify-center items-center group mb-2 sm:mb-0">
           <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full flex items-center justify-center mr-2 sm:mr-3 group-hover:scale-110 transition-transform duration-300">
             <img 
-              src={logo2} // ✅ Using imported variable instead of string path
+              src={logo2}
               alt="SWIFT Logo"
               className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 object-cover rounded-full"
             />
@@ -144,6 +150,23 @@ function Pool() {
           </div>
         </div>
       </div>
+
+      {/* Guest Access Banner - only show for guests */}
+      {userRole === "guest" && (
+        <div className="mx-4 sm:mx-6 md:mx-8 mt-4">
+          <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-xl p-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full flex items-center justify-center">
+                <FiEye className="text-white" size={16} />
+              </div>
+              <div>
+                <h3 className="text-amber-300 font-semibold">Guest Access - View Only Mode</h3>
+                <p className="text-amber-200 text-sm">You have read-only access to pool monitoring data</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Scrollable Content Container - Responsive */}
       <div className="relative z-10 h-screen overflow-y-auto overflow-x-hidden pb-16 sm:pb-20 md:pb-24">
@@ -303,7 +326,7 @@ function Pool() {
                   </div>
                 </div>
 
-                {/* Maintenance Prediction - Mobile Optimized */}
+                {/* Maintenance Prediction - Mobile Optimized with Guest Access Control */}
                 {maintainancePrediction && (
                   <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-purple-400/30">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -313,13 +336,21 @@ function Pool() {
                           Next cleaning: {maintainancePrediction.hour < 1 ? "Now" : `${maintainancePrediction.hour} hours`}
                         </p>
                       </div>
-                      <button
-                        onClick={handlePrediction}
-                        disabled={predictionState.loading}
-                        className="w-full sm:w-auto bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:from-gray-500 disabled:to-gray-600 text-white font-semibold px-4 sm:px-6 py-3 rounded-lg sm:rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-purple-500/25 disabled:cursor-not-allowed disabled:transform-none min-h-[44px] text-sm sm:text-base"
-                      >
-                        {predictionState.loading ? 'Predicting...' : 'Update Prediction'}
-                      </button>
+                      {/* Show different button based on user role */}
+                      {userRole !== "guest" ? (
+                        <button
+                          onClick={handlePrediction}
+                          disabled={predictionState.loading}
+                          className="w-full sm:w-auto bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:from-gray-500 disabled:to-gray-600 text-white font-semibold px-4 sm:px-6 py-3 rounded-lg sm:rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-purple-500/25 disabled:cursor-not-allowed disabled:transform-none min-h-[44px] text-sm sm:text-base"
+                        >
+                          {predictionState.loading ? 'Predicting...' : 'Update Prediction'}
+                        </button>
+                      ) : (
+                        <div className="w-full sm:w-auto bg-gray-500/20 text-gray-400 font-semibold px-4 sm:px-6 py-3 rounded-lg sm:rounded-xl min-h-[44px] text-sm sm:text-base flex items-center justify-center">
+                          <FiEye className="mr-2" size={16} />
+                          View Only Access
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

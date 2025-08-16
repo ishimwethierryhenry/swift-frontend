@@ -1,9 +1,12 @@
+// 4. UPDATED Navbar.jsx
 import { useEffect, useState } from "react";
 import { FaRegCalendarAlt } from "react-icons/fa";
 import { FaLocationDot } from "react-icons/fa6";
+import { FiEye } from "react-icons/fi";
 
 export const Navbar = () => {
   const location = localStorage.getItem("user_location");
+  const userRole = localStorage.getItem("user_role");
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -76,6 +79,19 @@ export const Navbar = () => {
             </div>
           </div>
         </div>
+
+        {/* Guest Status Indicator */}
+        {userRole === "guest" && (
+          <div className="group relative">
+            <div className="absolute -inset-0.5 sm:-inset-1 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg sm:rounded-xl opacity-25 group-hover:opacity-40 transition-opacity duration-300 blur-sm"></div>
+            <div className="relative bg-white/10 backdrop-blur-lg rounded-lg sm:rounded-xl p-2 sm:p-3 border border-white/20 hover:border-white/40 transition-all duration-300">
+              <div className="flex items-center space-x-2">
+                <FiEye className="text-amber-400" size={14} />
+                <span className="text-amber-300 text-xs sm:text-sm font-medium">Guest Access</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Logout Button - Responsive */}
         <button

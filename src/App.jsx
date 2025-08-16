@@ -1,9 +1,11 @@
+// 6. Update App.jsx to handle guest routing
 import React from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import DefaultLayout from "./layouts/DefaultLayout";
 import Login from "./pages/Login";
 import Pool from "./pages/Pool";
 import { Dashboard } from "./pages/Dashboard";
+import { GuestDashboard } from "./pages/GuestDashboard"; // Add this import
 import { DashboardLayout } from "./layouts/DashboardLayout";
 import { AddPool } from "./pages/AddPool";
 import { AddOperators } from "./pages/AddOperators";
@@ -30,6 +32,10 @@ const routes = [
       {
         path: "/dashboard",
         element: <Dashboard />,
+      },
+      {
+        path: "/guest-dashboard", // Add guest dashboard route
+        element: <GuestDashboard />,
       },
       {
         path: "/pool/create",

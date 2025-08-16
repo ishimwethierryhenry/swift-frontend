@@ -1,6 +1,7 @@
+// 5. UPDATED Login.jsx
 import React, { useEffect, useState } from "react";
 import banner_IMG from "../assets/banner.jpeg";
-import logo2 from "../assets/logo2.png"; // Import your custom logo
+import logo2 from "../assets/logo2.png";
 import { useDispatch, useSelector } from "react-redux";
 import { auth } from "../redux/slices/loginSlice";
 import { loginSchema } from "../validation/loginSchema";
@@ -9,16 +10,11 @@ import { useNavigate } from "react-router-dom";
 export default function Login() {
   const dispatch = useDispatch();
   const authHandler = useSelector((state) => state.login);
-  // Add this for debugging
-
-  useEffect(() => {
-  console.log('🔍 Auth Handler State:', authHandler);
-  }, [authHandler]);
   const navigation = useNavigate();
 
   const [isVisible, setIsVisible] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
-  
+
   const [errors, setErrors] = useState({});
   const [loginData, setLoginData] = useState({
     email: "",
@@ -29,9 +25,12 @@ export default function Login() {
     setIsVisible(true);
   }, []);
 
-  // Navigate to dashboard when login is successful
+  // Navigate to dashboard when login is successful - Updated for guest access
   useEffect(() => {
     if (authHandler.serverResponded) {
+      const userRole = localStorage.getItem("user_role");
+      
+      // All users go to the same dashboard, but guests will have restricted access
       navigation("/dashboard");
     }
   }, [authHandler.serverResponded, navigation]);
@@ -50,7 +49,7 @@ export default function Login() {
       e.preventDefault();
       const formData = {
         email: String(loginData.email),
-        pwd: String(loginData.password), // ✅ Fixed: Changed 'password' to 'pwd' to match backend
+        pwd: String(loginData.password),
       };
 
       if (validateForm({ email: formData.email, password: loginData.password })) {
@@ -88,13 +87,13 @@ export default function Login() {
       {/* Left Side - Login Form */}
       <div className="flex flex-col w-full lg:w-1/2 items-center justify-center p-8 relative z-10">
         <div className={`w-full max-w-md transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-          
+
           {/* Logo Section with Custom Logo */}
           <div className={`flex items-center justify-center mb-12 transition-all duration-1000 delay-200 ${isVisible ? 'scale-100 opacity-100' : 'scale-90 opacity-0'}`}>
             <div className="relative group mr-4">
               <div className="absolute -inset-1 bg-gradient-to-r from-cyan-400 via-teal-400 to-blue-500 rounded-2xl opacity-75 group-hover:opacity-100 blur transition duration-300 group-hover:scale-110"></div>
               <div className="relative w-16 h-16 bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl flex items-center justify-center border border-white/20 group-hover:scale-105 transition-transform duration-300 shadow-2xl">
-                <img 
+                <img
                   src={logo2}
                   alt="SWIFT Logo"
                   className="w-12 h-12 object-cover rounded-xl"
@@ -112,15 +111,20 @@ export default function Login() {
           <div className={`text-center mb-8 transition-all duration-1000 delay-400 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0'}`}>
             <h2 className="text-3xl font-bold text-white mb-2">Welcome Back!</h2>
             <p className="text-gray-300 text-lg">Sign in to your pool monitoring dashboard</p>
+            <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+              <p className="text-blue-200 text-sm">
+                <strong>Guest Access:</strong> Use email: guest@gmail.com, password: 12345678
+              </p>
+            </div>
           </div>
 
           {/* Login Form */}
-          <form 
+          <form
             onSubmit={handleSubmit}
             className={`backdrop-blur-lg bg-white/10 rounded-3xl p-8 border border-white/20 shadow-2xl transition-all duration-1000 delay-600 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}
           >
             <div className="space-y-6">
-              
+
               {/* Email Field */}
               <div className="space-y-2">
                 <label htmlFor="email" className="block text-white font-medium text-sm uppercase tracking-wide">
@@ -134,8 +138,8 @@ export default function Login() {
                     onFocus={() => setFocusedField('email')}
                     onBlur={() => setFocusedField(null)}
                     className={`w-full px-4 py-4 bg-white/5 backdrop-blur-sm border-2 rounded-2xl text-white placeholder-gray-400 transition-all duration-300 focus:outline-none ${
-                      focusedField === 'email' 
-                        ? 'border-cyan-400 bg-white/10 shadow-lg shadow-cyan-400/25 scale-105' 
+                      focusedField === 'email'
+                        ? 'border-cyan-400 bg-white/10 shadow-lg shadow-cyan-400/25 scale-105'
                         : 'border-white/20 hover:border-white/40'
                     }`}
                     placeholder="Enter your email"
@@ -162,8 +166,8 @@ export default function Login() {
                     onFocus={() => setFocusedField('password')}
                     onBlur={() => setFocusedField(null)}
                     className={`w-full px-4 py-4 bg-white/5 backdrop-blur-sm border-2 rounded-2xl text-white placeholder-gray-400 transition-all duration-300 focus:outline-none ${
-                      focusedField === 'password' 
-                        ? 'border-cyan-400 bg-white/10 shadow-lg shadow-cyan-400/25 scale-105' 
+                      focusedField === 'password'
+                        ? 'border-cyan-400 bg-white/10 shadow-lg shadow-cyan-400/25 scale-105'
                         : 'border-white/20 hover:border-white/40'
                     }`}
                     placeholder="Enter your password"
@@ -186,14 +190,14 @@ export default function Login() {
                 <span className={`relative z-10 transition-all duration-300 ${authHandler.loading ? 'opacity-0' : 'opacity-100'}`}>
                   Sign In to Dashboard
                 </span>
-                
+
                 {/* Loading Spinner */}
                 {authHandler.loading && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                   </div>
                 )}
-                
+
                 {/* Button Hover Effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </button>
@@ -240,12 +244,12 @@ export default function Login() {
 
       <style jsx>{`
         @keyframes float {
-          0%, 100% { 
-            transform: translateY(0px) rotate(0deg); 
+          0%, 100% {
+            transform: translateY(0px) rotate(0deg);
             opacity: 0.3;
           }
-          50% { 
-            transform: translateY(-20px) rotate(180deg); 
+          50% {
+            transform: translateY(-20px) rotate(180deg);
             opacity: 0.6;
           }
         }

@@ -1,3 +1,4 @@
+// 1. UPDATED Sidebar.jsx
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
@@ -7,6 +8,7 @@ import { GrUserManager } from "react-icons/gr";
 import { BiSolidNetworkChart } from "react-icons/bi";
 import { FaHistory } from "react-icons/fa";
 import { IoMdWater } from "react-icons/io";
+import { FiEye } from "react-icons/fi"; // Added for guest icon
 import { useDispatch } from "react-redux";
 import { activeLinksActions } from "../redux/slices/activeLinkSlice";
 import { 
@@ -14,13 +16,13 @@ import {
   ChevronRight,
   User
 } from "lucide-react";
-import logo2 from "../assets/logo2.png"; // ✅ Added proper import
+import logo2 from "../assets/logo2.png";
 
 // Swimming Pool Logo Component
 const SwimmingPoolLogo = ({ size = 36 }) => (
   <div className="relative overflow-hidden rounded-lg">
     <img 
-      src={logo2} // ✅ Using imported variable instead of string path
+      src={logo2}
       alt="SWIFT Logo"
       className="w-full h-full object-cover rounded-lg"
       style={{ width: size, height: size }}
@@ -43,7 +45,8 @@ export const SideNav = ({ label, destination, active = false, isCollapsed }) => 
       case "Monitor":
         return <IoMdWater className={iconClass} size={size} />;
       case "Pools":
-        return <LiaSwimmingPoolSolid className={iconClass} size={size} />;
+      // case "View Pools": // Added for guest access
+      //   return <LiaSwimmingPoolSolid className={iconClass} size={size} />;
       case "Operators":
         return <GrUserManager className={iconClass} size={size} />;
       case "Prediction":
@@ -151,7 +154,9 @@ export const Sidebar = () => {
                     <h1 className="text-lg lg:text-2xl font-bold bg-gradient-to-r from-cyan-300 via-teal-200 to-blue-300 bg-clip-text text-transparent tracking-wide">
                       SWIFT
                     </h1>
-                    <p className="text-xs lg:text-sm text-cyan-300 font-medium">Enhancing Water Quality</p>
+                    <p className="text-xs lg:text-sm text-cyan-300 font-medium">
+                      {userRole === "guest" ? "Guest Access" : "Enhancing Water Quality"}
+                    </p>
                   </div>
                 )}
               </div>
@@ -195,19 +200,21 @@ export const Sidebar = () => {
               />
             </div>
             
-            {userRole === "admin" && (
+            {/* Updated Pools section for guest access */}
+            {(userRole === "admin" || userRole === "guest") && (
               <div className={`transition-all duration-500 delay-300 ${
                 isVisible ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'
               }`}>
                 <SideNav
-                  label="Pools"
-                  destination="/pool/create"
-                  active={activeLink === "Pools"}
+                  label={userRole === "guest" ? "View Pools" : "Pools"}
+                  destination={userRole === "guest" ? "/pool" : "/pool/create"}
+                  active={activeLink === "Pools" || activeLink === "View Pools"}
                   isCollapsed={isCollapsed}
                 />
               </div>
             )}
 
+            {/* Admin only - Operators */}
             {userRole === "admin" && (
               <div className={`transition-all duration-500 delay-400 ${
                 isVisible ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'
@@ -221,17 +228,21 @@ export const Sidebar = () => {
               </div>
             )}
 
-            <div className={`transition-all duration-500 delay-500 ${
-              isVisible ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'
-            }`}>
-              <SideNav
-                label="Prediction"
-                destination="/predict"
-                active={activeLink === "Prediction"}
-                isCollapsed={isCollapsed}
-              />
-            </div>
+            {/* Prediction - Available to all roles except guests */}
+            {userRole !== "guest" && (
+              <div className={`transition-all duration-500 delay-500 ${
+                isVisible ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'
+              }`}>
+                <SideNav
+                  label="Prediction"
+                  destination="/predict"
+                  active={activeLink === "Prediction"}
+                  isCollapsed={isCollapsed}
+                />
+              </div>
+            )}
 
+            {/* History - Available to all roles */}
             <div className={`transition-all duration-500 delay-600 ${
               isVisible ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'
             }`}>
@@ -262,7 +273,7 @@ export const Sidebar = () => {
                       {userName || "User"}
                     </p>
                     <p className="text-xs text-gray-300 capitalize truncate">
-                      {userRole || "operator"}
+                      {userRole === "guest" ? "Guest User" : userRole || "operator"}
                     </p>
                   </div>
                 )}
@@ -278,6 +289,23 @@ export const Sidebar = () => {
               </div>
             )}
           </div>
+
+          {/* Guest Access Notice */}
+          {userRole === "guest" && (
+            <div className="p-2 lg:p-4 border-t border-white/10">
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                <div className="flex items-center space-x-2">
+                  <FiEye className="text-amber-400" size={16} />
+                  <p className="text-xs text-amber-300 font-medium">
+                    Guest Access
+                  </p>
+                </div>
+                <p className="text-xs text-amber-200 mt-1">
+                  Read-only access to pool data
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </aside>
 
