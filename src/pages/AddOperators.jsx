@@ -11,26 +11,31 @@ export const AddOperators = () => {
 
   const [errors, setErrors] = useState({});
   const [isVisible, setIsVisible] = useState(false);
-  const [submitData, setSubmitData] = useState({
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  
+  // Initial empty state
+  const initialFormState = {
     fname: "",
     lname: "",
     location: "",
     email: "",
     phone: "",
     gender: "",
-  });
+  };
+  
+  const [submitData, setSubmitData] = useState(initialFormState);
 
   const handleSubmit = (e) => {
     try {
       e.preventDefault();
-
-      console.log(submitData);
+      
+      console.log("Submitting form data:", submitData);
 
       if (validateForm(submitData)) {
         dispatch(registerOperator(submitData));
       }
     } catch (error) {
-      console.log(error);
+      console.log("Form submission error:", error);
     }
   };
 
@@ -57,35 +62,73 @@ export const AddOperators = () => {
       fname: e.target.name === "fname" ? e.target.value : prevState.fname,
       lname: e.target.name === "lname" ? e.target.value : prevState.lname,
       email: e.target.name === "email" ? e.target.value : prevState.email,
-      location:
-        e.target.name === "location" ? e.target.value : prevState.location,
+      location: e.target.name === "location" ? e.target.value : prevState.location,
       phone: e.target.name === "phone" ? e.target.value : prevState.phone,
       gender: e.target.name === "gender" ? e.target.value : prevState.gender,
     }));
   };
 
-  // Clear form when operator registration is successful
+  // Enhanced form clearing logic with multiple fallback conditions
   useEffect(() => {
-    // Adjust this condition based on your Redux state structure
-    // Common patterns: success, isSuccess, status === 'fulfilled'
-    if (addOperatorsState.success && !addOperatorsState.loading) {
+    console.log("AddOperators state changed:", addOperatorsState);
+    
+    // Try multiple possible success conditions
+    const isSuccess = 
+      addOperatorsState.success ||
+      addOperatorsState.isSuccess ||
+      addOperatorsState.status === 'fulfilled' ||
+      addOperatorsState.status === 'success' ||
+      (addOperatorsState.response && !addOperatorsState.loading);
+
+    const isNotLoading = !addOperatorsState.loading;
+
+    if (isSuccess && isNotLoading) {
+      console.log("🎉 Registration successful! Clearing form...");
+      
       // Clear all form fields
-      setSubmitData({
-        fname: "",
-        lname: "",
-        location: "",
-        email: "",
-        phone: "",
-        gender: "",
-      });
+      setSubmitData(initialFormState);
       
       // Clear any validation errors
       setErrors({});
       
-      // Optional: You can add a success notification here
-      // toast.success("Operator added successfully!");
+      // Show success message
+      setShowSuccessMessage(true);
+      
+      // Hide success message after 3 seconds
+      setTimeout(() => {
+        setShowSuccessMessage(false);
+      }, 3000);
+      
+      console.log("✅ Form cleared successfully");
     }
-  }, [addOperatorsState.success, addOperatorsState.loading]);
+  }, [
+    addOperatorsState.success,
+    addOperatorsState.isSuccess, 
+    addOperatorsState.status,
+    addOperatorsState.loading,
+    addOperatorsState.response
+  ]);
+
+  // Alternative: Clear form after any successful submission (fallback)
+  useEffect(() => {
+    // If the form was previously loading and now it's not, and there are no errors
+    if (!addOperatorsState.loading && 
+        !addOperatorsState.error && 
+        addOperatorsState.response) {
+      
+      console.log("🔄 Fallback form clearing triggered");
+      setSubmitData(initialFormState);
+      setErrors({});
+    }
+  }, [addOperatorsState.loading]);
+
+  // Manual clear function for testing
+  const handleClearForm = () => {
+    console.log("🧹 Manually clearing form");
+    setSubmitData(initialFormState);
+    setErrors({});
+    setShowSuccessMessage(false);
+  };
 
   useEffect(() => {
     dispatch(activeLinksActions.setActiveLink("Operators"));
@@ -115,6 +158,34 @@ export const AddOperators = () => {
             }}
           ></div>
         ))}
+      </div>
+
+      {/* Success Message */}
+      {showSuccessMessage && (
+        <div className="fixed top-4 right-4 z-50 bg-emerald-500 text-white px-6 py-3 rounded-lg shadow-lg animate-pulse">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center">
+              <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+            </div>
+            <span className="font-semibold">Pool Operator registered successfully! 🎉</span>
+          </div>
+        </div>
+      )}
+
+      {/* Debug Panel (Remove in production) */}
+      <div className="fixed top-4 left-4 z-40 bg-black/80 text-white p-3 rounded-lg text-xs max-w-sm">
+        <h4 className="font-bold mb-2 text-cyan-400">🐛 Debug Info</h4>
+        <div>Loading: {String(addOperatorsState.loading)}</div>
+        <div>Success: {String(addOperatorsState.success)}</div>
+        <div>Status: {addOperatorsState.status || 'undefined'}</div>
+        <div>Response: {addOperatorsState.response ? '✅' : '❌'}</div>
+        <div>Error: {addOperatorsState.error ? '❌' : '✅'}</div>
+        <button 
+          onClick={handleClearForm}
+          className="mt-2 bg-red-500 text-white px-2 py-1 rounded text-xs"
+        >
+          Manual Clear
+        </button>
       </div>
 
       {/* Scrollable Content Container - Responsive */}

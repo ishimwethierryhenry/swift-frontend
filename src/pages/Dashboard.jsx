@@ -7,10 +7,10 @@ import { poolsAssigned } from "../redux/slices/poolsAssignedSlice";
 import { poolsAvailable } from "../redux/slices/poolsByLocationSlice";
 import { operatorsAvailable } from "../redux/slices/operatorsByLocationSlice";
 import { ModalDeleteOperator } from "../components/ModalDeleteOperator";
-// import { ModalOperator } from "../components/ModalOperator"; // Commented out until component is created
 import { getLocations } from "../redux/slices/locationsSlice";
 import { deletePool, resetDeletePoolState } from "../redux/slices/deletePoolSlice";
 import { deleteOperator, resetDeleteOperatorState } from "../redux/slices/deleteOperatorSlice";
+import MQTTlive from "../service/MQTTlive";
 
 export const Dashboard = () => {
   const userState = useSelector((state) => state.user.user);
@@ -28,6 +28,10 @@ export const Dashboard = () => {
   const userId = localStorage.getItem("user_id");
   const userRole = localStorage.getItem("user_role");
   const userLocation = localStorage.getItem("user_location");
+
+  // MQTT Connection Status Management
+  const [poolConnectionStatus, setPoolConnectionStatus] = useState({});
+  const [mqttClients, setMqttClients] = useState({});
 
   // Function to refresh data based on user role
   const refreshDashboardData = () => {
@@ -72,6 +76,146 @@ export const Dashboard = () => {
     data: null,
   });
 
+  // MQTT Connection Management
+  const connectToPoolMQTT = (poolName) => {
+    // Map pool names to their corresponding MQTT topics
+    const poolTopicMap = {
+      'pool01': 'device_serena_pool01',
+      'pool02': 'device_serena_pool02', 
+      'pool702897': 'device_serena_pool702897',
+      // Add more mappings as needed
+    };
+
+    const mqttTopic = poolTopicMap[poolName] || `device_serena_${poolName}`;
+    
+    console.log(`🔌 Connecting to MQTT for pool: ${poolName}, topic: ${mqttTopic}`);
+
+    try {
+      const client = MQTTlive(mqttTopic, (topic, message) => {
+        console.log(`📊 Received data for ${poolName}:`, message);
+        
+        // Update connection status to 'Connected' when we receive data
+        setPoolConnectionStatus(prev => ({
+          ...prev,
+          [poolName]: {
+            status: 'Connected',
+            lastUpdate: new Date().toLocaleTimeString(),
+            hasData: true
+          }
+        }));
+      });
+
+      // Store client reference
+      setMqttClients(prev => ({
+        ...prev,
+        [poolName]: client
+      }));
+
+      // Set initial connecting status
+      setPoolConnectionStatus(prev => ({
+        ...prev,
+        [poolName]: {
+          status: 'Connecting...',
+          lastUpdate: new Date().toLocaleTimeString(),
+          hasData: false
+        }
+      }));
+
+      // Set a timeout to mark as disconnected if no data received
+      setTimeout(() => {
+        setPoolConnectionStatus(prev => {
+          if (prev[poolName] && prev[poolName].status === 'Connecting...') {
+            return {
+              ...prev,
+              [poolName]: {
+                ...prev[poolName],
+                status: 'Disconnected'
+              }
+            };
+          }
+          return prev;
+        });
+      }, 10000); // 10 seconds timeout
+
+    } catch (error) {
+      console.error(`❌ Failed to connect to MQTT for ${poolName}:`, error);
+      setPoolConnectionStatus(prev => ({
+        ...prev,
+        [poolName]: {
+          status: 'Error',
+          lastUpdate: new Date().toLocaleTimeString(),
+          hasData: false
+        }
+      }));
+    }
+  };
+
+  // Initialize MQTT connections for all pools
+  useEffect(() => {
+    if (pools.length > 0) {
+      pools.forEach(pool => {
+        if (pool.name && !mqttClients[pool.name]) {
+          connectToPoolMQTT(pool.name);
+        }
+      });
+    }
+
+    // Cleanup function
+    return () => {
+      Object.values(mqttClients).forEach(client => {
+        if (client && client.disconnect) {
+          client.disconnect();
+        }
+      });
+    };
+  }, [pools]);
+
+  // Get pool status with enhanced logic
+  const getPoolStatus = (pool) => {
+    const connectionInfo = poolConnectionStatus[pool.name];
+    
+    if (!connectionInfo) {
+      return {
+        status: 'Unknown',
+        color: 'bg-gray-500',
+        textColor: 'text-white'
+      };
+    }
+
+    switch (connectionInfo.status) {
+      case 'Connected':
+        return {
+          status: 'Connected',
+          color: 'bg-emerald-500',
+          textColor: 'text-white'
+        };
+      case 'Connecting...':
+        return {
+          status: 'Connecting...',
+          color: 'bg-yellow-500',
+          textColor: 'text-white'
+        };
+      case 'Disconnected':
+        return {
+          status: 'Disconnected',
+          color: 'bg-red-500',
+          textColor: 'text-white'
+        };
+      case 'Error':
+        return {
+          status: 'Error',
+          color: 'bg-orange-500',
+          textColor: 'text-white'
+        };
+      default:
+        return {
+          status: 'Unknown',
+          color: 'bg-gray-500',
+          textColor: 'text-white'
+        };
+    }
+  };
+
   const handleDelete = (id) => {};
   const handleEdit = (pool) => {
     setPoolEditModal({ id: pool.name, open: true, data: pool });
@@ -80,8 +224,6 @@ export const Dashboard = () => {
     setLocationModal({ id: location.name, open: true });
   };
   const handleViewPool = (pool) => {
-    // You can implement pool viewing logic here
-    // For now, let's use the same modal as edit but in view-only mode
     setPoolEditModal({ id: pool.name, open: true, data: { ...pool, viewOnly: true } });
   };
   const handleDeletePool = (pool) => {
@@ -89,13 +231,11 @@ export const Dashboard = () => {
   };
 
   const handleViewOperator = (operator) => {
-    // Temporary solution: just log the operator data
     console.log("View operator:", operator);
     alert(`Viewing operator: ${operator.fname || 'N/A'} ${operator.lname || ''}\nEmail: ${operator.email || 'N/A'}`);
   };
   
   const handleEditOperator = (operator) => {
-    // Temporary solution: just log the operator data
     console.log("Edit operator:", operator);
     alert(`Edit operator: ${operator.fname || 'N/A'} ${operator.lname || ''}\nEmail: ${operator.email || 'N/A'}`);
   };
@@ -106,10 +246,7 @@ export const Dashboard = () => {
 
   const confirmDeleteOperator = async (operatorId) => {
     try {
-      // You'll need to create a deleteOperator Redux action similar to deletePool
-      // await dispatch(deleteOperator(operatorId));
       console.log("Delete operator with ID:", operatorId);
-      // For now, just close the modal - you can implement the actual delete later
       setOperatorDeleteModal({ id: null, open: false, data: null });
     } catch (error) {
       console.error("Failed to delete operator:", error);
@@ -119,14 +256,11 @@ export const Dashboard = () => {
   // Handle delete pool success - refresh the pools list
   useEffect(() => {
     if (deletePoolState?.serverResponded && deletePoolState?.response) {
-      // Refresh pools list based on user role
       if (userRole === "operator") {
         dispatch(poolsAssigned(userId));
       } else if (userRole === "admin") {
         dispatch(poolsAvailable(userLocation));
       }
-      
-      // Reset delete state
       dispatch(resetDeletePoolState());
     }
   }, [deletePoolState?.serverResponded, deletePoolState?.response, userRole, userId, userLocation, dispatch]);
@@ -170,7 +304,7 @@ export const Dashboard = () => {
     }
   }, []);
 
-  // Auto-refresh dashboard data every 3 seconds
+  // Auto-refresh dashboard data every 30 seconds (reduced frequency to avoid conflicts with MQTT)
   useEffect(() => {
     const refreshInterval = setInterval(() => {
       if (userRole === "operator" && userId) {
@@ -181,9 +315,8 @@ export const Dashboard = () => {
       } else if (userRole === "overseer") {
         dispatch(getLocations());
       }
-    }, 3000); // Refresh every 3 seconds
+    }, 30000); // Refresh every 30 seconds
 
-    // Cleanup interval on component unmount
     return () => clearInterval(refreshInterval);
   }, [userRole, userId, userLocation, dispatch]);
 
@@ -195,6 +328,26 @@ export const Dashboard = () => {
         <div className="absolute top-10 right-5 sm:top-20 sm:right-10 md:top-40 md:right-20 w-24 h-24 sm:w-32 sm:h-32 md:w-96 md:h-96 bg-cyan-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse animation-delay-2000"></div>
         <div className="absolute bottom-5 left-10 sm:bottom-10 sm:left-20 md:bottom-20 md:left-40 w-24 h-24 sm:w-32 sm:h-32 md:w-96 md:h-96 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse animation-delay-4000"></div>
       </div>
+
+      {/* MQTT Connection Status Debug Panel */}
+      {Object.keys(poolConnectionStatus).length > 0 && (
+        <div className="fixed top-4 right-4 z-50 bg-black/80 backdrop-blur-lg rounded-lg p-3 text-xs text-white max-w-xs">
+          <h4 className="font-bold mb-2 text-cyan-400">🔌 MQTT Status</h4>
+          {Object.entries(poolConnectionStatus).map(([poolName, status]) => (
+            <div key={poolName} className="flex justify-between mb-1">
+              <span>{poolName}:</span>
+              <span className={`font-semibold ${
+                status.status === 'Connected' ? 'text-emerald-400' :
+                status.status === 'Connecting...' ? 'text-yellow-400' :
+                status.status === 'Disconnected' ? 'text-red-400' :
+                'text-gray-400'
+              }`}>
+                {status.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Scrollable Content Container */}
       <div className="relative z-10 h-screen overflow-y-auto overflow-x-hidden pb-16 sm:pb-20 md:pb-24">
@@ -256,91 +409,112 @@ export const Dashboard = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {pools.map((pool, index) => (
-                            <tr key={index} className="border-b border-white/10">
-                              <td className="p-3 text-sm">{pool.name || 'N/A'}</td>
-                              <td className="p-3 text-sm">{pool.depth || 'N/A'}</td>
-                              <td className="p-3 text-sm">{pool.l || 'N/A'}</td>
-                              <td className="p-3 text-sm">{pool.w || 'N/A'}</td>
-                              <td className="p-3">
-                                <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs">
-                                  {pool.status || 'Unknown'}
-                                </span>
-                              </td>
-                              <td className="p-3">
-                                <div className="flex gap-2">
-                                  <button 
-                                    onClick={() => handleViewPool(pool)}
-                                    className="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600"
-                                  >
-                                    View
-                                  </button>
-                                  <button 
-                                    onClick={() => handleEdit(pool)}
-                                    className="bg-yellow-500 text-white px-3 py-1 rounded text-xs hover:bg-yellow-600"
-                                  >
-                                    Edit
-                                  </button>
-                                  <button 
-                                    onClick={() => handleDeletePool(pool)}
-                                    className="bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600"
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
+                          {pools.map((pool, index) => {
+                            const statusInfo = getPoolStatus(pool);
+                            return (
+                              <tr key={index} className="border-b border-white/10">
+                                <td className="p-3 text-sm">{pool.name || 'N/A'}</td>
+                                <td className="p-3 text-sm">{pool.depth || 'N/A'}</td>
+                                <td className="p-3 text-sm">{pool.l || 'N/A'}</td>
+                                <td className="p-3 text-sm">{pool.w || 'N/A'}</td>
+                                <td className="p-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`${statusInfo.color} ${statusInfo.textColor} px-3 py-1 rounded-full text-xs font-semibold`}>
+                                      {statusInfo.status}
+                                    </span>
+                                    {poolConnectionStatus[pool.name]?.hasData && (
+                                      <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="p-3">
+                                  <div className="flex gap-2">
+                                    <button 
+                                      onClick={() => handleViewPool(pool)}
+                                      className="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600"
+                                    >
+                                      View
+                                    </button>
+                                    <button 
+                                      onClick={() => handleEdit(pool)}
+                                      className="bg-yellow-500 text-white px-3 py-1 rounded text-xs hover:bg-yellow-600"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button 
+                                      onClick={() => handleDeletePool(pool)}
+                                      className="bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600"
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
 
                     {/* Mobile/Tablet Card View */}
                     <div className="lg:hidden space-y-3 sm:space-y-4">
-                      {pools.map((pool, index) => (
-                        <div key={index} className="bg-white/5 rounded-lg p-3 sm:p-4 border border-white/10">
-                          <div className="flex justify-between items-start mb-3">
-                            <h3 className="text-white font-semibold text-base sm:text-lg">{pool.name || 'N/A'}</h3>
-                            <span className="bg-red-500 text-white px-2 sm:px-3 py-1 rounded-full text-xs">
-                              {pool.status || 'Unknown'}
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4 text-xs sm:text-sm">
-                            <div>
-                              <span className="text-gray-300 block">Depth</span>
-                              <p className="text-white font-medium">{pool.depth || 'N/A'}</p>
+                      {pools.map((pool, index) => {
+                        const statusInfo = getPoolStatus(pool);
+                        return (
+                          <div key={index} className="bg-white/5 rounded-lg p-3 sm:p-4 border border-white/10">
+                            <div className="flex justify-between items-start mb-3">
+                              <h3 className="text-white font-semibold text-base sm:text-lg">{pool.name || 'N/A'}</h3>
+                              <div className="flex items-center gap-2">
+                                <span className={`${statusInfo.color} ${statusInfo.textColor} px-2 sm:px-3 py-1 rounded-full text-xs font-semibold`}>
+                                  {statusInfo.status}
+                                </span>
+                                {poolConnectionStatus[pool.name]?.hasData && (
+                                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                                )}
+                              </div>
                             </div>
-                            <div>
-                              <span className="text-gray-300 block">Length</span>
-                              <p className="text-white font-medium">{pool.l || 'N/A'}</p>
+                            <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4 text-xs sm:text-sm">
+                              <div>
+                                <span className="text-gray-300 block">Depth</span>
+                                <p className="text-white font-medium">{pool.depth || 'N/A'}</p>
+                              </div>
+                              <div>
+                                <span className="text-gray-300 block">Length</span>
+                                <p className="text-white font-medium">{pool.l || 'N/A'}</p>
+                              </div>
+                              <div>
+                                <span className="text-gray-300 block">Width</span>
+                                <p className="text-white font-medium">{pool.w || 'N/A'}</p>
+                              </div>
                             </div>
-                            <div>
-                              <span className="text-gray-300 block">Width</span>
-                              <p className="text-white font-medium">{pool.w || 'N/A'}</p>
+                            {poolConnectionStatus[pool.name]?.lastUpdate && (
+                              <div className="text-xs text-gray-400 mb-3">
+                                Last update: {poolConnectionStatus[pool.name].lastUpdate}
+                              </div>
+                            )}
+                            <div className="flex gap-2">
+                              <button 
+                                onClick={() => handleViewPool(pool)}
+                                className="bg-gray-500 text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-gray-600"
+                              >
+                                View
+                              </button>
+                              <button 
+                                onClick={() => handleEdit(pool)}
+                                className="bg-yellow-500 text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-yellow-600"
+                              >
+                                Edit
+                              </button>
+                              <button 
+                                onClick={() => handleDeletePool(pool)}
+                                className="bg-red-500 text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-red-600"
+                              >
+                                Delete
+                              </button>
                             </div>
                           </div>
-                          <div className="flex gap-2">
-                            <button 
-                              onClick={() => handleViewPool(pool)}
-                              className="bg-gray-500 text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-gray-600"
-                            >
-                              View
-                            </button>
-                            <button 
-                              onClick={() => handleEdit(pool)}
-                              className="bg-yellow-500 text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-yellow-600"
-                            >
-                              Edit
-                            </button>
-                            <button 
-                              onClick={() => handleDeletePool(pool)}
-                              className="bg-red-500 text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-red-600"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -495,7 +669,7 @@ export const Dashboard = () => {
                     </div>
                   </div>
                   
-                  {/* Pools Display (Same structure as admin) */}
+                  {/* Pools Display (Same structure as admin but with MQTT status) */}
                   <div className="bg-white/5 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-white/10">
                     {/* Desktop Table View */}
                     <div className="hidden lg:block overflow-x-auto">
@@ -511,91 +685,112 @@ export const Dashboard = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {pools.map((pool, index) => (
-                            <tr key={index} className="border-b border-white/10">
-                              <td className="p-3 text-sm">{pool.name || 'N/A'}</td>
-                              <td className="p-3 text-sm">{pool.depth || 'N/A'}</td>
-                              <td className="p-3 text-sm">{pool.l || 'N/A'}</td>
-                              <td className="p-3 text-sm">{pool.w || 'N/A'}</td>
-                              <td className="p-3">
-                                <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs">
-                                  {pool.status || 'Unknown'}
-                                </span>
-                              </td>
-                              <td className="p-3">
-                                <div className="flex gap-2">
-                                  <button 
-                                    onClick={() => handleViewPool(pool)}
-                                    className="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600"
-                                  >
-                                    View
-                                  </button>
-                                  <button 
-                                    onClick={() => handleEdit(pool)}
-                                    className="bg-yellow-500 text-white px-3 py-1 rounded text-xs hover:bg-yellow-600"
-                                  >
-                                    Edit
-                                  </button>
-                                  <button 
-                                    onClick={() => handleDeletePool(pool)}
-                                    className="bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600"
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
+                          {pools.map((pool, index) => {
+                            const statusInfo = getPoolStatus(pool);
+                            return (
+                              <tr key={index} className="border-b border-white/10">
+                                <td className="p-3 text-sm">{pool.name || 'N/A'}</td>
+                                <td className="p-3 text-sm">{pool.depth || 'N/A'}</td>
+                                <td className="p-3 text-sm">{pool.l || 'N/A'}</td>
+                                <td className="p-3 text-sm">{pool.w || 'N/A'}</td>
+                                <td className="p-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`${statusInfo.color} ${statusInfo.textColor} px-3 py-1 rounded-full text-xs font-semibold`}>
+                                      {statusInfo.status}
+                                    </span>
+                                    {poolConnectionStatus[pool.name]?.hasData && (
+                                      <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="p-3">
+                                  <div className="flex gap-2">
+                                    <button 
+                                      onClick={() => handleViewPool(pool)}
+                                      className="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600"
+                                    >
+                                      View
+                                    </button>
+                                    <button 
+                                      onClick={() => handleEdit(pool)}
+                                      className="bg-yellow-500 text-white px-3 py-1 rounded text-xs hover:bg-yellow-600"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button 
+                                      onClick={() => handleDeletePool(pool)}
+                                      className="bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600"
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
 
                     {/* Mobile/Tablet Card View */}
                     <div className="lg:hidden space-y-3 sm:space-y-4">
-                      {pools.map((pool, index) => (
-                        <div key={index} className="bg-white/5 rounded-lg p-3 sm:p-4 border border-white/10">
-                          <div className="flex justify-between items-start mb-3">
-                            <h3 className="text-white font-semibold text-base sm:text-lg">{pool.name}</h3>
-                            <span className="bg-red-500 text-white px-2 sm:px-3 py-1 rounded-full text-xs">
-                              {pool.status}
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4 text-xs sm:text-sm">
-                            <div>
-                              <span className="text-gray-300 block">Depth</span>
-                              <p className="text-white font-medium">{pool.depth}</p>
+                      {pools.map((pool, index) => {
+                        const statusInfo = getPoolStatus(pool);
+                        return (
+                          <div key={index} className="bg-white/5 rounded-lg p-3 sm:p-4 border border-white/10">
+                            <div className="flex justify-between items-start mb-3">
+                              <h3 className="text-white font-semibold text-base sm:text-lg">{pool.name}</h3>
+                              <div className="flex items-center gap-2">
+                                <span className={`${statusInfo.color} ${statusInfo.textColor} px-2 sm:px-3 py-1 rounded-full text-xs font-semibold`}>
+                                  {statusInfo.status}
+                                </span>
+                                {poolConnectionStatus[pool.name]?.hasData && (
+                                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                                )}
+                              </div>
                             </div>
-                            <div>
-                              <span className="text-gray-300 block">Length</span>
-                              <p className="text-white font-medium">{pool.length}</p>
+                            <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4 text-xs sm:text-sm">
+                              <div>
+                                <span className="text-gray-300 block">Depth</span>
+                                <p className="text-white font-medium">{pool.depth}</p>
+                              </div>
+                              <div>
+                                <span className="text-gray-300 block">Length</span>
+                                <p className="text-white font-medium">{pool.length}</p>
+                              </div>
+                              <div>
+                                <span className="text-gray-300 block">Width</span>
+                                <p className="text-white font-medium">{pool.width}</p>
+                              </div>
                             </div>
-                            <div>
-                              <span className="text-gray-300 block">Width</span>
-                              <p className="text-white font-medium">{pool.width}</p>
+                            {poolConnectionStatus[pool.name]?.lastUpdate && (
+                              <div className="text-xs text-gray-400 mb-3">
+                                Last update: {poolConnectionStatus[pool.name].lastUpdate}
+                              </div>
+                            )}
+                            <div className="flex gap-2">
+                              <button 
+                                onClick={() => handleViewPool(pool)}
+                                className="bg-gray-500 text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-gray-600"
+                              >
+                                View
+                              </button>
+                              <button 
+                                onClick={() => handleEdit(pool)}
+                                className="bg-yellow-500 text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-yellow-600"
+                              >
+                                Edit
+                              </button>
+                              <button 
+                                onClick={() => handleDeletePool(pool)}
+                                className="bg-red-500 text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-red-600"
+                              >
+                                Delete
+                              </button>
                             </div>
                           </div>
-                          <div className="flex gap-2">
-                            <button 
-                              onClick={() => handleViewPool(pool)}
-                              className="bg-gray-500 text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-gray-600"
-                            >
-                              View
-                            </button>
-                            <button 
-                              onClick={() => handleEdit(pool)}
-                              className="bg-yellow-500 text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-yellow-600"
-                            >
-                              Edit
-                            </button>
-                            <button 
-                              onClick={() => handleDeletePool(pool)}
-                              className="bg-red-500 text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-red-600"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -714,9 +909,9 @@ export const Dashboard = () => {
             </div>
           )}
 
-          {/* Quick Stats Section for All Roles - Responsive */}
+          {/* Enhanced Quick Stats Section with Connection Status */}
           <div className={`transition-all duration-1000 delay-700 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
               {/* Total Pools Card */}
               <div className="relative group">
                 <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl sm:rounded-2xl opacity-30 group-hover:opacity-50 transition-opacity duration-300 blur"></div>
@@ -724,6 +919,18 @@ export const Dashboard = () => {
                   <h3 className="text-cyan-300 text-base sm:text-lg font-semibold mb-2">Total Pools</h3>
                   <p className="text-white text-2xl sm:text-3xl font-bold">{pools.length}</p>
                   <p className="text-cyan-200 text-xs sm:text-sm mt-2">Currently monitored</p>
+                </div>
+              </div>
+
+              {/* Connected Devices Card */}
+              <div className="relative group">
+                <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl sm:rounded-2xl opacity-30 group-hover:opacity-50 transition-opacity duration-300 blur"></div>
+                <div className="relative bg-white/10 backdrop-blur-lg rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/20 hover:border-white/40 transition-all duration-300">
+                  <h3 className="text-emerald-300 text-base sm:text-lg font-semibold mb-2">Connected Devices</h3>
+                  <p className="text-white text-2xl sm:text-3xl font-bold">
+                    {Object.values(poolConnectionStatus).filter(status => status.status === 'Connected').length}
+                  </p>
+                  <p className="text-emerald-200 text-xs sm:text-sm mt-2">Live data streaming</p>
                 </div>
               </div>
 
@@ -781,14 +988,6 @@ export const Dashboard = () => {
           loading={deletePoolState?.loading || false}
         />
       )}
-      {/* Temporarily commented out until ModalOperator component is created
-      {operatorEditModal.open && (
-        <ModalOperator
-          data={operatorEditModal.data}
-          Fn={setOperatorEditModal}
-        />
-      )}
-      */}
       {operatorDeleteModal.open && (
         <ModalDeleteOperator 
           Fn={setOperatorDeleteModal}
