@@ -1,4 +1,4 @@
-// 3. UPDATED Pool.jsx
+// Updated Pool.jsx with correct MQTT topic to match your ESP8266 device
 import React, { useEffect, useState } from "react";
 import PhChart from "../components/PhChart";
 import ParameterCard from "../components/ParameterCard";
@@ -27,6 +27,7 @@ function Pool() {
   const [sensorData, setSensorData] = useState(null);
   const [maintainancePrediction, setMaintainancePrediction] = useState(null);
   const [chartData, setChartData] = useState([]);
+  const [connectionStatus, setConnectionStatus] = useState('Connecting...');
 
   const toggleDropdown = () => {
     setIsOpen(!isOpen);
@@ -47,37 +48,82 @@ function Pool() {
   useEffect(() => {
     setIsVisible(true);
     
+    // FIXED: Use the exact topic that your ESP8266 device publishes to
+    const deviceTopic = "device_serena_pool02"; // This matches your ESP8266 code
+    
+    console.log(`🔌 Connecting to MQTT topic: ${deviceTopic}/sensor`);
+    
     // Connect to MQTT and handle incoming messages
-    const client = MQTTlive(topic, (topic, message) => {
-      // console.log(`Received message: ${message} on topic: ${topic}`);
-      const data = JSON.parse(message);
-      const time = new Date().toLocaleTimeString();
-      setChartData((prevData) => {
-        const newData = [
-          ...prevData,
-          {
-            time,
-            tbdt: data.tbdt.toFixed(2),
-            ph: data.ph.toFixed(2),
-            tds: data.tds.toFixed(2),
-          },
-        ];
-        if (newData.length > MAX_DATA_POINTS) {
-          newData.shift(); // Remove the oldest data point to keep the array size within the limit
+    const client = MQTTlive(deviceTopic, (receivedTopic, message) => {
+      console.log(`✅ Received MQTT message on topic: ${receivedTopic}`);
+      console.log(`📊 Raw message data: ${message}`);
+      
+      try {
+        const data = JSON.parse(message);
+        console.log(`📈 Parsed sensor data:`, data);
+        
+        // Validate data structure
+        if (data.ph !== undefined && data.tds !== undefined && data.tbdt !== undefined) {
+          const time = new Date().toLocaleTimeString();
+          
+          // Update chart data
+          setChartData((prevData) => {
+            const newData = [
+              ...prevData,
+              {
+                time,
+                tbdt: Number(data.tbdt).toFixed(2),
+                ph: Number(data.ph).toFixed(2),
+                tds: Number(data.tds).toFixed(2),
+              },
+            ];
+            if (newData.length > MAX_DATA_POINTS) {
+              newData.shift(); // Remove the oldest data point
+            }
+            return newData;
+          });
+          
+          // Update current sensor data
+          setSensorData({
+            ph: Number(data.ph),
+            tds: Number(data.tds),
+            tbdt: Number(data.tbdt)
+          });
+          
+          setConnectionStatus('Connected & Receiving Data');
+          console.log(`✅ Data updated successfully at ${time}`);
+        } else {
+          console.warn('⚠️ Received incomplete sensor data:', data);
         }
-        return newData;
-      });
-      setSensorData(data);
+      } catch (error) {
+        console.error('❌ Error parsing MQTT message:', error);
+        console.error('Raw message that failed to parse:', message);
+      }
     });
 
-    // Clean up the connection on unmount
-    return () => {
-      if (client) {
-        console.log("MQTT disconnect");
-        client.disconnect();
-      }
-    };
-  }, []);
+    // Add connection status monitoring
+    if (client) {
+      // Check connection status periodically
+      const statusCheck = setInterval(() => {
+        if (client.isConnected && client.isConnected()) {
+          if (connectionStatus === 'Connecting...') {
+            setConnectionStatus('Connected - Waiting for Data');
+          }
+        } else {
+          setConnectionStatus('Disconnected');
+        }
+      }, 2000);
+
+      // Clean up on unmount
+      return () => {
+        clearInterval(statusCheck);
+        if (client) {
+          console.log("🔌 MQTT disconnect");
+          client.disconnect();
+        }
+      };
+    }
+  }, []); // Removed topic dependency since we're using hardcoded topic
 
   // Calculate overall pool status
   const getOverallStatus = () => {
@@ -138,16 +184,45 @@ function Pool() {
           <label className="font-bold text-xl sm:text-2xl md:text-3xl text-white tracking-wide">SWIFT</label>
         </div>
         
-        {/* Status Section - Mobile Responsive */}
+        {/* Status Section - Mobile Responsive with Connection Status */}
         <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-emerald-400 rounded-full animate-pulse"></div>
-            <span className="text-white font-semibold text-sm sm:text-base">LIVE</span>
+            <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${
+              connectionStatus.includes('Receiving') ? 'bg-emerald-400 animate-pulse' :
+              connectionStatus.includes('Connected') ? 'bg-yellow-400 animate-pulse' :
+              connectionStatus.includes('Connecting') ? 'bg-blue-400 animate-pulse' :
+              'bg-red-400'
+            }`}></div>
+            <span className="text-white font-semibold text-sm sm:text-base">
+              {connectionStatus.includes('Receiving') ? 'LIVE' : 
+               connectionStatus.includes('Connected') ? 'CONNECTED' :
+               connectionStatus.includes('Connecting') ? 'CONNECTING' : 'OFFLINE'}
+            </span>
           </div>
           <div className="text-white text-center sm:text-left">
             <span className="text-gray-300 text-sm sm:text-base">Status: </span>
             <span className={`font-bold text-sm sm:text-base ${overallStatus.color}`}>{overallStatus.status}</span>
           </div>
+        </div>
+      </div>
+
+      {/* Connection Debug Info */}
+      <div className="mx-4 sm:mx-6 md:mx-8 mt-2">
+        <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/30 rounded-xl p-3">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-blue-300">MQTT Status:</span>
+            <span className="text-blue-200 font-mono">{connectionStatus}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm mt-1">
+            <span className="text-blue-300">Device Topic:</span>
+            <span className="text-blue-200 font-mono">device_serena_pool02/sensor</span>
+          </div>
+          {sensorData && (
+            <div className="flex items-center justify-between text-sm mt-1">
+              <span className="text-blue-300">Last Update:</span>
+              <span className="text-blue-200 font-mono">{new Date().toLocaleTimeString()}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -181,7 +256,7 @@ function Pool() {
             </div>
             <div className="overflow-hidden">
               <label className={`font-bold text-base sm:text-lg md:text-xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 block mt-1 sm:mt-2 transition-all duration-1000 delay-700 ${isVisible ? 'translate-y-0' : 'translate-y-full'}`}>
-                Topic: {topic || "Not Connected"}
+                Device: Serena Pool 02
               </label>
             </div>
             <div className="w-16 sm:w-20 md:w-24 h-1 bg-gradient-to-r from-cyan-400 to-blue-500 mx-auto rounded-full mt-3 sm:mt-4"></div>
@@ -214,7 +289,7 @@ function Pool() {
                     </div>
                   </div>
                   <label className="font-bold text-3xl sm:text-4xl md:text-5xl text-cyan-300">
-                    {sensorData?.ph.toFixed(2) || "0.00"}
+                    {sensorData?.ph ? sensorData.ph.toFixed(2) : "0.00"}
                   </label>
                   <div className="text-xs sm:text-sm text-gray-300">
                     Optimal: 7.1 - 7.3
@@ -247,7 +322,7 @@ function Pool() {
                     </div>
                   </div>
                   <label className="font-bold text-3xl sm:text-4xl md:text-5xl text-cyan-300">
-                    {Math.max(0, sensorData?.tbdt.toFixed(2)) || "0.00"}
+                    {sensorData?.tbdt ? Math.max(0, sensorData.tbdt.toFixed(2)) : "0.00"}
                   </label>
                   <div className="text-xs sm:text-sm text-gray-300">
                     NTU (Max: 50)
@@ -280,7 +355,7 @@ function Pool() {
                     </div>
                   </div>
                   <label className="font-bold text-3xl sm:text-4xl md:text-5xl text-cyan-300">
-                    {sensorData?.tds.toFixed(2) || "0.00"}
+                    {sensorData?.tds ? sensorData.tds.toFixed(2) : "0.00"}
                   </label>
                   <div className="text-xs sm:text-sm text-gray-300">
                     ppm (Max: 2000)
