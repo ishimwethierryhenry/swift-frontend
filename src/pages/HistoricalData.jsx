@@ -52,7 +52,7 @@ export const HistoricalData = () => {
         timeRange: selectedTimeRange,
         parameter: selectedParameter,
         poolId: selectedPool !== 'all' ? selectedPool : undefined,
-        limit: 1000
+        limit: selectedTimeRange === 'all' ? 5000 : 1000 // Increase limit for all-time data
       };
 
       // Fetch historical data and statistics simultaneously
@@ -74,7 +74,7 @@ export const HistoricalData = () => {
   const handleExportCSV = () => {
     if (!data || data.length === 0) return;
 
-    const headers = ['Date', 'Pool', 'pH', 'Turbidity', 'Conductivity', 'Temperature', 'Status'];
+    const headers = ['Date', 'Pool', 'pH', 'Turbidity', 'Conductivity', 'Temperature', 'Dissolved Oxygen', 'Status', 'Notes'];
     const csvContent = [
       headers.join(','),
       ...data.map(row => [
@@ -84,7 +84,9 @@ export const HistoricalData = () => {
         row.turbidity,
         row.conductivity,
         row.temperature || 'N/A',
-        row.isOptimal ? 'Optimal' : 'Needs Attention'
+        row.dissolvedOxygen || 'N/A',
+        row.isOptimal ? 'Optimal' : 'Needs Attention',
+        row.notes || ''
       ].join(','))
     ].join('\n');
 
@@ -92,7 +94,7 @@ export const HistoricalData = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `water-quality-data-${selectedTimeRange}.csv`;
+    a.download = `water-quality-data-${selectedTimeRange}-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -102,8 +104,13 @@ export const HistoricalData = () => {
     { value: "week", label: "This Week" },
     { value: "month", label: "This Month" },
     { value: "quarter", label: "This Quarter" },
+    { value: "6months", label: "Last 6 Months" },
+    { value: "year", label: "This Year" },
+    { value: "2025", label: "2025 Data" },
     { value: "2024", label: "2024 Data" },
-    { value: "all", label: "All Time" }
+    { value: "2023", label: "2023 Data" },
+    { value: "2024-2025", label: "2024-2025 Comparison" },
+    { value: "all", label: "All Time (2023-2025)" }
   ];
 
   const parameters = [
@@ -111,12 +118,77 @@ export const HistoricalData = () => {
     { value: "ph", label: "pH Level" },
     { value: "turbidity", label: "Turbidity" },
     { value: "conductivity", label: "Conductivity" },
-    { value: "temperature", label: "Temperature" }
+    { value: "temperature", label: "Temperature" },
+    { value: "dissolvedOxygen", label: "Dissolved Oxygen" }
   ];
+
+  // Helper function to get data range description
+  const getDataRangeDescription = () => {
+    if (!data || data.length === 0) return "No data available";
+    
+    const dates = data.map(d => new Date(d.recordedAt)).sort((a, b) => a - b);
+    const startDate = dates[0];
+    const endDate = dates[dates.length - 1];
+    
+    const formatDate = (date) => date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+    
+    return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+  };
+
+  // Helper function to get enhanced insights
+  const getEnhancedInsights = () => {
+    if (!statistics) return null;
+
+    const insights = [];
+
+    // Time span insight
+    if (selectedTimeRange === 'all') {
+      insights.push({
+        type: 'info',
+        title: 'Historical Coverage',
+        message: `Analyzing ${statistics.totalRecords.toLocaleString()} data points across 2.5+ years of monitoring.`
+      });
+    }
+
+    // Quality trend insight
+    if (statistics.optimalPercentage > 90) {
+      insights.push({
+        type: 'success',
+        title: 'Excellent Performance',
+        message: `Outstanding water quality with ${statistics.optimalPercentage}% optimal readings. Current procedures are highly effective.`
+      });
+    } else if (statistics.optimalPercentage > 75) {
+      insights.push({
+        type: 'success',
+        title: 'Good Performance',
+        message: `Strong water quality with ${statistics.optimalPercentage}% optimal readings. Minor improvements could optimize results.`
+      });
+    } else if (statistics.optimalPercentage > 60) {
+      insights.push({
+        type: 'warning',
+        title: 'Moderate Performance',
+        message: `Water quality needs attention with ${statistics.optimalPercentage}% optimal readings. Review maintenance schedules.`
+      });
+    } else {
+      insights.push({
+        type: 'danger',
+        title: 'Performance Alert',
+        message: `Critical: Only ${statistics.optimalPercentage}% optimal readings. Immediate intervention required.`
+      });
+    }
+
+    return insights;
+  };
 
   if (loading && !data) {
     return <LoadingSpinner />;
   }
+
+  const insights = getEnhancedInsights();
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 overflow-hidden relative">
@@ -129,15 +201,15 @@ export const HistoricalData = () => {
 
       {/* Floating Water Bubbles */}
       <div className="absolute inset-0 pointer-events-none">
-        {[...Array(6)].map((_, i) => (
+        {[...Array(8)].map((_, i) => (
           <div
             key={i}
             className={`absolute w-4 h-4 bg-cyan-300 rounded-full opacity-30 animate-bounce`}
             style={{
-              left: `${20 + i * 15}%`,
-              top: `${30 + i * 10}%`,
-              animationDelay: `${i * 0.5}s`,
-              animationDuration: `${3 + i * 0.5}s`
+              left: `${15 + i * 12}%`,
+              top: `${25 + i * 8}%`,
+              animationDelay: `${i * 0.4}s`,
+              animationDuration: `${2.5 + i * 0.3}s`
             }}
           ></div>
         ))}
@@ -156,10 +228,17 @@ export const HistoricalData = () => {
             </div>
             <div className="overflow-hidden">
               <label className={`font-bold text-2xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 block mt-2 transition-all duration-1000 delay-700 ${isVisible ? 'translate-y-0' : 'translate-y-full'}`}>
-                Real-time water quality trends and insights
+                2.5+ Years of Water Quality Intelligence (2023-2025)
               </label>
             </div>
             <div className="w-32 h-1 bg-gradient-to-r from-cyan-400 to-blue-500 mx-auto rounded-full mt-6"></div>
+            
+            {/* Data Range Indicator */}
+            <div className="mt-4 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-lg inline-block border border-white/20">
+              <span className="text-gray-300 text-sm font-medium">
+                Data Range: {getDataRangeDescription()}
+              </span>
+            </div>
           </div>
 
           {/* Error Alert */}
@@ -234,7 +313,7 @@ export const HistoricalData = () => {
 
           {/* Quick Stats */}
           {statistics && (
-            <div className={`grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 transition-all duration-1000 delay-1100 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+            <div className={`grid grid-cols-1 md:grid-cols-5 gap-6 mb-8 transition-all duration-1000 delay-1100 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
               
               {/* Total Data Points */}
               <div className="relative group">
@@ -258,24 +337,41 @@ export const HistoricalData = () => {
                 </div>
               </div>
 
+              {/* Avg Temperature */}
+              <div className="relative group">
+                <div className="absolute -inset-2 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl opacity-30 group-hover:opacity-40 transition-opacity duration-300 blur-lg"></div>
+                <div className="relative backdrop-blur-lg bg-white/10 rounded-2xl p-4 border border-white/20 hover:border-orange-400/50 transition-all duration-300">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-orange-400">
+                      {statistics.avgTemperature ? `${parseFloat(statistics.avgTemperature).toFixed(1)}°C` : 'N/A'}
+                    </div>
+                    <div className="text-sm text-gray-300 mt-1">Avg Temp</div>
+                  </div>
+                </div>
+              </div>
+
               {/* Optimal Percentage */}
               <div className="relative group">
                 <div className="absolute -inset-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl opacity-30 group-hover:opacity-40 transition-opacity duration-300 blur-lg"></div>
                 <div className="relative backdrop-blur-lg bg-white/10 rounded-2xl p-4 border border-white/20 hover:border-purple-400/50 transition-all duration-300">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-purple-400">{statistics.optimalPercentage}%</div>
-                    <div className="text-sm text-gray-300 mt-1">Optimal Days</div>
+                    <div className="text-sm text-gray-300 mt-1">Optimal</div>
                   </div>
                 </div>
               </div>
 
-              {/* Last Updated */}
+              {/* Data Timespan */}
               <div className="relative group">
-                <div className="absolute -inset-2 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl opacity-30 group-hover:opacity-40 transition-opacity duration-300 blur-lg"></div>
-                <div className="relative backdrop-blur-lg bg-white/10 rounded-2xl p-4 border border-white/20 hover:border-orange-400/50 transition-all duration-300">
+                <div className="absolute -inset-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl opacity-30 group-hover:opacity-40 transition-opacity duration-300 blur-lg"></div>
+                <div className="relative backdrop-blur-lg bg-white/10 rounded-2xl p-4 border border-white/20 hover:border-indigo-400/50 transition-all duration-300">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-400">Live</div>
-                    <div className="text-sm text-gray-300 mt-1">Data Status</div>
+                    <div className="text-2xl font-bold text-indigo-400">
+                      {selectedTimeRange === 'all' ? '2.5+' : selectedTimeRange === '2024' ? '1' : selectedTimeRange === '2023' ? '1' : '< 1'}
+                    </div>
+                    <div className="text-sm text-gray-300 mt-1">
+                      {selectedTimeRange === 'all' ? 'Years' : 'Year(s)'}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -293,11 +389,13 @@ export const HistoricalData = () => {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                   <div>
                     <label className="font-bold text-3xl text-white">
-                      {selectedTimeRange === "2024" ? "2024 Data Trends" : `${timeRanges.find(r => r.value === selectedTimeRange)?.label} Analysis`}
+                      {selectedTimeRange === "all" ? "Complete Historical Analysis (2023-2025)" 
+                       : selectedTimeRange === "2024-2025" ? "2024-2025 Comparative Analysis"
+                       : `${timeRanges.find(r => r.value === selectedTimeRange)?.label} Analysis`}
                     </label>
                     <p className="text-gray-300 mt-2">
                       {selectedParameter === "all" ? "All water quality parameters" : `${parameters.find(p => p.value === selectedParameter)?.label} trends`}
-                      {data && ` (${data.length} records)`}
+                      {data && ` (${data.length.toLocaleString()} records)`}
                     </p>
                   </div>
                   
@@ -323,7 +421,7 @@ export const HistoricalData = () => {
                 <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 min-h-[500px]">
                   {loading ? (
                     <div className="flex items-center justify-center h-full">
-                      <div className="text-white text-lg">Loading chart data...</div>
+                      <div className="text-white text-lg">Loading extensive historical data...</div>
                     </div>
                   ) : data && data.length > 0 ? (
                     <HistoryGraph 
@@ -338,42 +436,43 @@ export const HistoricalData = () => {
                   )}
                 </div>
 
-                {/* Data Insights */}
-                {statistics && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                    
-                    <div className="bg-emerald-500/10 rounded-2xl p-4 border border-emerald-400/30">
-                      <h4 className="font-semibold text-emerald-300 mb-2">Key Insight</h4>
-                      <p className="text-sm text-gray-300">
-                        {statistics.optimalPercentage > 80 
-                          ? `Excellent water quality with ${statistics.optimalPercentage}% optimal readings.`
-                          : statistics.optimalPercentage > 60
-                          ? `Good water quality with ${statistics.optimalPercentage}% optimal readings.`
-                          : `Water quality needs attention - only ${statistics.optimalPercentage}% optimal readings.`
-                        }
-                      </p>
-                    </div>
+                {/* Enhanced Data Insights */}
+                {insights && insights.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                    {insights.map((insight, index) => (
+                      <div 
+                        key={index}
+                        className={`rounded-2xl p-4 border ${
+                          insight.type === 'success' ? 'bg-emerald-500/10 border-emerald-400/30' :
+                          insight.type === 'warning' ? 'bg-yellow-500/10 border-yellow-400/30' :
+                          insight.type === 'danger' ? 'bg-red-500/10 border-red-400/30' :
+                          'bg-blue-500/10 border-blue-400/30'
+                        }`}
+                      >
+                        <h4 className={`font-semibold mb-2 ${
+                          insight.type === 'success' ? 'text-emerald-300' :
+                          insight.type === 'warning' ? 'text-yellow-300' :
+                          insight.type === 'danger' ? 'text-red-300' :
+                          'text-blue-300'
+                        }`}>
+                          {insight.title}
+                        </h4>
+                        <p className="text-sm text-gray-300">
+                          {insight.message}
+                        </p>
+                      </div>
+                    ))}
 
-                    <div className="bg-blue-500/10 rounded-2xl p-4 border border-blue-400/30">
-                      <h4 className="font-semibold text-blue-300 mb-2">pH Analysis</h4>
-                      <p className="text-sm text-gray-300">
-                        Average pH level is {statistics.avgpH}. 
-                        {parseFloat(statistics.avgpH) >= 7.2 && parseFloat(statistics.avgpH) <= 7.8 
-                          ? " This is within the optimal range."
-                          : " Consider adjusting pH levels for optimal water quality."
-                        }
-                      </p>
-                    </div>
-
-                    <div className="bg-purple-500/10 rounded-2xl p-4 border border-purple-400/30">
-                      <h4 className="font-semibold text-purple-300 mb-2">Recommendation</h4>
-                      <p className="text-sm text-gray-300">
-                        {statistics.optimalPercentage < 70 
-                          ? "Increase monitoring frequency and check filtration systems."
-                          : "Maintain current monitoring schedule and procedures."
-                        }
-                      </p>
-                    </div>
+                    {/* Additional historical insight for long-term data */}
+                    {selectedTimeRange === 'all' && statistics && (
+                      <div className="bg-indigo-500/10 rounded-2xl p-4 border border-indigo-400/30">
+                        <h4 className="font-semibold text-indigo-300 mb-2">Long-term Trend</h4>
+                        <p className="text-sm text-gray-300">
+                          Over 2.5 years of monitoring, your system has maintained an average pH of {statistics.avgpH}, 
+                          demonstrating {statistics.optimalPercentage > 80 ? 'excellent' : statistics.optimalPercentage > 60 ? 'good' : 'inconsistent'} long-term stability.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

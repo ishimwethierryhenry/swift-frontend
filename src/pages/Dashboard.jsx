@@ -32,6 +32,7 @@ export const Dashboard = () => {
   // MQTT Connection Status Management
   const [poolConnectionStatus, setPoolConnectionStatus] = useState({});
   const [mqttClients, setMqttClients] = useState({});
+  const [testingPools, setTestingPools] = useState({}); // Track which pools are being tested
 
   // Function to refresh data based on user role
   const refreshDashboardData = () => {
@@ -150,6 +151,192 @@ export const Dashboard = () => {
     }
   };
 
+  // NEW: Handle TEST button functionality
+  const handleTestPool = async (pool) => {
+    const poolName = pool.name;
+    console.log(`🧪 Starting TEST for pool: ${poolName}`);
+    
+    // Set testing state
+    setTestingPools(prev => ({
+      ...prev,
+      [poolName]: {
+        testing: true,
+        startTime: new Date(),
+        status: 'Recording data...'
+      }
+    }));
+
+    try {
+      // 1. Trigger device recording for this specific pool
+      const recordingResponse = await fetch('/api/device/start-recording', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          poolId: pool.id || pool._id,
+          poolName: poolName,
+          userId: userId,
+          userRole: userRole,
+          testInitiated: true,
+          timestamp: new Date().toISOString()
+        })
+      });
+
+      if (!recordingResponse.ok) {
+        throw new Error('Failed to start device recording');
+      }
+
+      const recordingData = await recordingResponse.json();
+      console.log('📊 Recording started:', recordingData);
+
+      // 2. Set up specific MQTT connection for this test
+      const poolTopicMap = {
+        'pool01': 'device_serena_pool01',
+        'pool02': 'device_serena_pool02', 
+        'pool702897': 'device_serena_pool702897',
+      };
+
+      const mqttTopic = poolTopicMap[poolName] || `device_serena_${poolName}`;
+      
+      // Create a test-specific MQTT client
+      const testClient = MQTTlive(mqttTopic, (topic, message) => {
+        console.log(`🧪 TEST data received for ${poolName}:`, message);
+        
+        // Process and assign data to this specific pool
+        handleTestDataReceived(pool, message);
+      });
+
+      // Update testing status
+      setTestingPools(prev => ({
+        ...prev,
+        [poolName]: {
+          ...prev[poolName],
+          status: 'Waiting for data...',
+          client: testClient
+        }
+      }));
+
+      // 3. Set timeout for test completion (e.g., 30 seconds)
+      setTimeout(() => {
+        completeTest(pool);
+      }, 30000); // 30 seconds test duration
+
+    } catch (error) {
+      console.error(`❌ TEST failed for ${poolName}:`, error);
+      
+      // Update testing state with error
+      setTestingPools(prev => ({
+        ...prev,
+        [poolName]: {
+          testing: false,
+          status: 'Test failed',
+          error: error.message
+        }
+      }));
+
+      // Show error notification
+      alert(`Test failed for ${poolName}: ${error.message}`);
+    }
+  };
+
+  // Handle data received during test
+  const handleTestDataReceived = async (pool, data) => {
+    const poolName = pool.name;
+    console.log(`📝 Processing test data for ${poolName}:`, data);
+
+    try {
+      // Save data with pool assignment
+      const saveResponse = await fetch('/api/pool-data/save-test-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          poolId: pool.id || pool._id,
+          poolName: poolName,
+          data: data,
+          testMode: true,
+          userId: userId,
+          timestamp: new Date().toISOString()
+        })
+      });
+
+      if (saveResponse.ok) {
+        const savedData = await saveResponse.json();
+        console.log(`✅ Test data saved for ${poolName}:`, savedData);
+        
+        // Update testing status
+        setTestingPools(prev => ({
+          ...prev,
+          [poolName]: {
+            ...prev[poolName],
+            status: 'Data recorded successfully!',
+            dataReceived: true,
+            lastDataTime: new Date().toLocaleTimeString()
+          }
+        }));
+      }
+    } catch (error) {
+      console.error(`❌ Failed to save test data for ${poolName}:`, error);
+    }
+  };
+
+  // Complete the test
+  const completeTest = async (pool) => {
+    const poolName = pool.name;
+    console.log(`🏁 Completing TEST for pool: ${poolName}`);
+
+    try {
+      // Stop device recording
+      await fetch('/api/device/stop-recording', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          poolId: pool.id || pool._id,
+          poolName: poolName,
+          userId: userId
+        })
+      });
+
+      // Disconnect test-specific MQTT client
+      const testInfo = testingPools[poolName];
+      if (testInfo?.client && testInfo.client.disconnect) {
+        testInfo.client.disconnect();
+      }
+
+      // Update testing state
+      setTestingPools(prev => ({
+        ...prev,
+        [poolName]: {
+          testing: false,
+          status: prev[poolName]?.dataReceived ? 'Test completed successfully!' : 'Test completed - no data received',
+          completed: true,
+          endTime: new Date()
+        }
+      }));
+
+      // Clear the testing status after 5 seconds
+      setTimeout(() => {
+        setTestingPools(prev => {
+          const newState = { ...prev };
+          delete newState[poolName];
+          return newState;
+        });
+      }, 5000);
+
+      console.log(`✅ TEST completed for ${poolName}`);
+
+    } catch (error) {
+      console.error(`❌ Error completing test for ${poolName}:`, error);
+    }
+  };
+
   // Initialize MQTT connections for all pools
   useEffect(() => {
     if (pools.length > 0) {
@@ -173,6 +360,16 @@ export const Dashboard = () => {
   // Get pool status with enhanced logic
   const getPoolStatus = (pool) => {
     const connectionInfo = poolConnectionStatus[pool.name];
+    const testInfo = testingPools[pool.name];
+    
+    // If pool is being tested, show test status
+    if (testInfo?.testing) {
+      return {
+        status: testInfo.status,
+        color: 'bg-purple-500',
+        textColor: 'text-white'
+      };
+    }
     
     if (!connectionInfo) {
       return {
@@ -223,9 +420,7 @@ export const Dashboard = () => {
   const handleView = (location) => {
     setLocationModal({ id: location.name, open: true });
   };
-  const handleViewPool = (pool) => {
-    setPoolEditModal({ id: pool.name, open: true, data: { ...pool, viewOnly: true } });
-  };
+  
   const handleDeletePool = (pool) => {
     setPoolDeleteModal({ id: pool.id || pool._id, open: true, data: pool });
   };
@@ -304,7 +499,7 @@ export const Dashboard = () => {
     }
   }, []);
 
-  // Auto-refresh dashboard data every 30 seconds (reduced frequency to avoid conflicts with MQTT)
+  // Auto-refresh dashboard data every 30 seconds
   useEffect(() => {
     const refreshInterval = setInterval(() => {
       if (userRole === "operator" && userId) {
@@ -315,21 +510,21 @@ export const Dashboard = () => {
       } else if (userRole === "overseer") {
         dispatch(getLocations());
       }
-    }, 30000); // Refresh every 30 seconds
+    }, 30000);
 
     return () => clearInterval(refreshInterval);
   }, [userRole, userId, userLocation, dispatch]);
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 relative overflow-x-hidden">
-      {/* Animated Background Elements - Responsive */}
+      {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-5 left-5 sm:top-10 sm:left-10 md:top-20 md:left-20 w-24 h-24 sm:w-32 sm:h-32 md:w-96 md:h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse"></div>
         <div className="absolute top-10 right-5 sm:top-20 sm:right-10 md:top-40 md:right-20 w-24 h-24 sm:w-32 sm:h-32 md:w-96 md:h-96 bg-cyan-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse animation-delay-2000"></div>
         <div className="absolute bottom-5 left-10 sm:bottom-10 sm:left-20 md:bottom-20 md:left-40 w-24 h-24 sm:w-32 sm:h-32 md:w-96 md:h-96 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse animation-delay-4000"></div>
       </div>
 
-      {/* MQTT Connection Status Debug Panel */}
+      {/* MQTT Connection Status Debug Panel
       {Object.keys(poolConnectionStatus).length > 0 && (
         <div className="fixed top-4 right-4 z-50 bg-black/80 backdrop-blur-lg rounded-lg p-3 text-xs text-white max-w-xs">
           <h4 className="font-bold mb-2 text-cyan-400">🔌 MQTT Status</h4>
@@ -347,13 +542,29 @@ export const Dashboard = () => {
             </div>
           ))}
         </div>
+      )} */}
+
+      {/* Test Status Panel */}
+      {Object.keys(testingPools).length > 0 && (
+        <div className="fixed top-4 left-4 z-50 bg-purple-900/90 backdrop-blur-lg rounded-lg p-3 text-xs text-white max-w-xs">
+          <h4 className="font-bold mb-2 text-purple-300">🧪 Test Status</h4>
+          {Object.entries(testingPools).map(([poolName, testInfo]) => (
+            <div key={poolName} className="mb-2 p-2 bg-purple-800/50 rounded">
+              <div className="font-semibold text-purple-200">{poolName}</div>
+              <div className="text-purple-100">{testInfo.status}</div>
+              {testInfo.lastDataTime && (
+                <div className="text-purple-300 text-xs">Last data: {testInfo.lastDataTime}</div>
+              )}
+            </div>
+          ))}
+        </div>
       )}
 
       {/* Scrollable Content Container */}
       <div className="relative z-10 h-screen overflow-y-auto overflow-x-hidden pb-16 sm:pb-20 md:pb-24">
         <div className="p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl mx-auto space-y-4 sm:space-y-6 md:space-y-8 pb-16 sm:pb-20">
           
-          {/* Dashboard Header - Responsive */}
+          {/* Dashboard Header */}
           <div className={`transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-10 opacity-0'}`}>
             <div className="text-center">
               <h1 className="font-bold text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-white mb-2 md:mb-4">
@@ -393,7 +604,7 @@ export const Dashboard = () => {
                     </div>
                   </div>
                   
-                  {/* Pools Display - Mobile-First Responsive */}
+                  {/* Pools Display */}
                   <div className="bg-white/5 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-white/10">
                     {/* Desktop Table View */}
                     <div className="hidden lg:block overflow-x-auto">
@@ -411,6 +622,7 @@ export const Dashboard = () => {
                         <tbody>
                           {pools.map((pool, index) => {
                             const statusInfo = getPoolStatus(pool);
+                            const testInfo = testingPools[pool.name];
                             return (
                               <tr key={index} className="border-b border-white/10">
                                 <td className="p-3 text-sm">{pool.name || 'N/A'}</td>
@@ -422,18 +634,26 @@ export const Dashboard = () => {
                                     <span className={`${statusInfo.color} ${statusInfo.textColor} px-3 py-1 rounded-full text-xs font-semibold`}>
                                       {statusInfo.status}
                                     </span>
-                                    {poolConnectionStatus[pool.name]?.hasData && (
+                                    {poolConnectionStatus[pool.name]?.hasData && !testInfo?.testing && (
                                       <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                                    )}
+                                    {testInfo?.testing && (
+                                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
                                     )}
                                   </div>
                                 </td>
                                 <td className="p-3">
                                   <div className="flex gap-2">
                                     <button 
-                                      onClick={() => handleViewPool(pool)}
-                                      className="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600"
+                                      onClick={() => handleTestPool(pool)}
+                                      disabled={testInfo?.testing}
+                                      className={`${
+                                        testInfo?.testing 
+                                          ? 'bg-purple-300 cursor-not-allowed' 
+                                          : 'bg-purple-500 hover:bg-purple-600'
+                                      } text-white px-3 py-1 rounded text-xs transition-colors duration-200`}
                                     >
-                                      View
+                                      {testInfo?.testing ? 'Testing...' : 'TEST'}
                                     </button>
                                     <button 
                                       onClick={() => handleEdit(pool)}
@@ -460,6 +680,7 @@ export const Dashboard = () => {
                     <div className="lg:hidden space-y-3 sm:space-y-4">
                       {pools.map((pool, index) => {
                         const statusInfo = getPoolStatus(pool);
+                        const testInfo = testingPools[pool.name];
                         return (
                           <div key={index} className="bg-white/5 rounded-lg p-3 sm:p-4 border border-white/10">
                             <div className="flex justify-between items-start mb-3">
@@ -468,8 +689,11 @@ export const Dashboard = () => {
                                 <span className={`${statusInfo.color} ${statusInfo.textColor} px-2 sm:px-3 py-1 rounded-full text-xs font-semibold`}>
                                   {statusInfo.status}
                                 </span>
-                                {poolConnectionStatus[pool.name]?.hasData && (
+                                {poolConnectionStatus[pool.name]?.hasData && !testInfo?.testing && (
                                   <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                                )}
+                                {testInfo?.testing && (
+                                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
                                 )}
                               </div>
                             </div>
@@ -492,12 +716,25 @@ export const Dashboard = () => {
                                 Last update: {poolConnectionStatus[pool.name].lastUpdate}
                               </div>
                             )}
+                            {testInfo && (
+                              <div className="text-xs text-purple-300 mb-3 p-2 bg-purple-900/30 rounded">
+                                Test: {testInfo.status}
+                                {testInfo.lastDataTime && (
+                                  <div>Last data: {testInfo.lastDataTime}</div>
+                                )}
+                              </div>
+                            )}
                             <div className="flex gap-2">
                               <button 
-                                onClick={() => handleViewPool(pool)}
-                                className="bg-gray-500 text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-gray-600"
+                                onClick={() => handleTestPool(pool)}
+                                disabled={testInfo?.testing}
+                                className={`${
+                                  testInfo?.testing 
+                                    ? 'bg-purple-300 cursor-not-allowed' 
+                                    : 'bg-purple-500 hover:bg-purple-600'
+                                } text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 transition-colors duration-200`}
                               >
-                                View
+                                {testInfo?.testing ? 'Testing...' : 'TEST'}
                               </button>
                               <button 
                                 onClick={() => handleEdit(pool)}
@@ -544,7 +781,7 @@ export const Dashboard = () => {
                     </div>
                   </div>
                   
-                  {/* Operators Display - Mobile-First Responsive */}
+                  {/* Operators Display */}
                   <div className="bg-white/5 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-white/10">
                     {/* Desktop Table View */}
                     <div className="hidden lg:block overflow-x-auto">
@@ -669,7 +906,7 @@ export const Dashboard = () => {
                     </div>
                   </div>
                   
-                  {/* Pools Display (Same structure as admin but with MQTT status) */}
+                  {/* Pools Display */}
                   <div className="bg-white/5 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-white/10">
                     {/* Desktop Table View */}
                     <div className="hidden lg:block overflow-x-auto">
@@ -687,6 +924,7 @@ export const Dashboard = () => {
                         <tbody>
                           {pools.map((pool, index) => {
                             const statusInfo = getPoolStatus(pool);
+                            const testInfo = testingPools[pool.name];
                             return (
                               <tr key={index} className="border-b border-white/10">
                                 <td className="p-3 text-sm">{pool.name || 'N/A'}</td>
@@ -698,18 +936,26 @@ export const Dashboard = () => {
                                     <span className={`${statusInfo.color} ${statusInfo.textColor} px-3 py-1 rounded-full text-xs font-semibold`}>
                                       {statusInfo.status}
                                     </span>
-                                    {poolConnectionStatus[pool.name]?.hasData && (
+                                    {poolConnectionStatus[pool.name]?.hasData && !testInfo?.testing && (
                                       <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                                    )}
+                                    {testInfo?.testing && (
+                                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
                                     )}
                                   </div>
                                 </td>
                                 <td className="p-3">
                                   <div className="flex gap-2">
                                     <button 
-                                      onClick={() => handleViewPool(pool)}
-                                      className="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600"
+                                      onClick={() => handleTestPool(pool)}
+                                      disabled={testInfo?.testing}
+                                      className={`${
+                                        testInfo?.testing 
+                                          ? 'bg-purple-300 cursor-not-allowed' 
+                                          : 'bg-purple-500 hover:bg-purple-600'
+                                      } text-white px-3 py-1 rounded text-xs transition-colors duration-200`}
                                     >
-                                      View
+                                      {testInfo?.testing ? 'Testing...' : 'TEST'}
                                     </button>
                                     <button 
                                       onClick={() => handleEdit(pool)}
@@ -736,6 +982,7 @@ export const Dashboard = () => {
                     <div className="lg:hidden space-y-3 sm:space-y-4">
                       {pools.map((pool, index) => {
                         const statusInfo = getPoolStatus(pool);
+                        const testInfo = testingPools[pool.name];
                         return (
                           <div key={index} className="bg-white/5 rounded-lg p-3 sm:p-4 border border-white/10">
                             <div className="flex justify-between items-start mb-3">
@@ -744,8 +991,11 @@ export const Dashboard = () => {
                                 <span className={`${statusInfo.color} ${statusInfo.textColor} px-2 sm:px-3 py-1 rounded-full text-xs font-semibold`}>
                                   {statusInfo.status}
                                 </span>
-                                {poolConnectionStatus[pool.name]?.hasData && (
+                                {poolConnectionStatus[pool.name]?.hasData && !testInfo?.testing && (
                                   <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                                )}
+                                {testInfo?.testing && (
+                                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
                                 )}
                               </div>
                             </div>
@@ -768,12 +1018,25 @@ export const Dashboard = () => {
                                 Last update: {poolConnectionStatus[pool.name].lastUpdate}
                               </div>
                             )}
+                            {testInfo && (
+                              <div className="text-xs text-purple-300 mb-3 p-2 bg-purple-900/30 rounded">
+                                Test: {testInfo.status}
+                                {testInfo.lastDataTime && (
+                                  <div>Last data: {testInfo.lastDataTime}</div>
+                                )}
+                              </div>
+                            )}
                             <div className="flex gap-2">
                               <button 
-                                onClick={() => handleViewPool(pool)}
-                                className="bg-gray-500 text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 hover:bg-gray-600"
+                                onClick={() => handleTestPool(pool)}
+                                disabled={testInfo?.testing}
+                                className={`${
+                                  testInfo?.testing 
+                                    ? 'bg-purple-300 cursor-not-allowed' 
+                                    : 'bg-purple-500 hover:bg-purple-600'
+                                } text-white px-2 sm:px-3 py-2 rounded text-xs sm:text-sm flex-1 transition-colors duration-200`}
                               >
-                                View
+                                {testInfo?.testing ? 'Testing...' : 'TEST'}
                               </button>
                               <button 
                                 onClick={() => handleEdit(pool)}
@@ -909,7 +1172,7 @@ export const Dashboard = () => {
             </div>
           )}
 
-          {/* Enhanced Quick Stats Section with Connection Status */}
+          {/* Enhanced Quick Stats Section */}
           <div className={`transition-all duration-1000 delay-700 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
               {/* Total Pools Card */}
@@ -931,6 +1194,18 @@ export const Dashboard = () => {
                     {Object.values(poolConnectionStatus).filter(status => status.status === 'Connected').length}
                   </p>
                   <p className="text-emerald-200 text-xs sm:text-sm mt-2">Live data streaming</p>
+                </div>
+              </div>
+
+              {/* Tests Running Card */}
+              <div className="relative group">
+                <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl sm:rounded-2xl opacity-30 group-hover:opacity-50 transition-opacity duration-300 blur"></div>
+                <div className="relative bg-white/10 backdrop-blur-lg rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/20 hover:border-white/40 transition-all duration-300">
+                  <h3 className="text-purple-300 text-base sm:text-lg font-semibold mb-2">Active Tests</h3>
+                  <p className="text-white text-2xl sm:text-3xl font-bold">
+                    {Object.values(testingPools).filter(test => test.testing).length}
+                  </p>
+                  <p className="text-purple-200 text-xs sm:text-sm mt-2">Currently running</p>
                 </div>
               </div>
 
@@ -959,14 +1234,16 @@ export const Dashboard = () => {
               )}
 
               {/* System Status Card */}
-              <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-green-500 to-teal-500 rounded-xl sm:rounded-2xl opacity-30 group-hover:opacity-50 transition-opacity duration-300 blur"></div>
-                <div className="relative bg-white/10 backdrop-blur-lg rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/20 hover:border-white/40 transition-all duration-300">
-                  <h3 className="text-green-300 text-base sm:text-lg font-semibold mb-2">System Status</h3>
-                  <p className="text-white text-2xl sm:text-3xl font-bold">Online</p>
-                  <p className="text-green-200 text-xs sm:text-sm mt-2">All systems operational</p>
+              {(userRole === "operator" || Object.keys(testingPools).length === 0) && (
+                <div className="relative group">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-green-500 to-teal-500 rounded-xl sm:rounded-2xl opacity-30 group-hover:opacity-50 transition-opacity duration-300 blur"></div>
+                  <div className="relative bg-white/10 backdrop-blur-lg rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/20 hover:border-white/40 transition-all duration-300">
+                    <h3 className="text-green-300 text-base sm:text-lg font-semibold mb-2">System Status</h3>
+                    <p className="text-white text-2xl sm:text-3xl font-bold">Online</p>
+                    <p className="text-green-200 text-xs sm:text-sm mt-2">All systems operational</p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -984,7 +1261,6 @@ export const Dashboard = () => {
         <ModalDeletePool 
           Fn={setPoolDeleteModal} 
           data={poolDeleteModal.data}
-          onConfirmDelete={confirmDeletePool}
           loading={deletePoolState?.loading || false}
         />
       )}
@@ -1063,6 +1339,20 @@ export const Dashboard = () => {
           button {
             min-height: 44px;
             min-width: 44px;
+          }
+        }
+
+        /* Test button animation */
+        .test-button-pulse {
+          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: .8;
           }
         }
       `}</style>
