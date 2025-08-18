@@ -1,4 +1,4 @@
-// src/redux/store.js - UPDATED VERSION
+// src/redux/store.js - UPDATED VERSION WITH FEEDBACK SLICE
 import { configureStore } from "@reduxjs/toolkit";
 import loginSlice from "./slices/loginSlice";
 import userSlice from "./slices/userSlice";
@@ -11,12 +11,13 @@ import guestsByLocationSlice from "./slices/guestsByLocationSlice";
 import poolAddSlice from "./slices/poolAddSlice";
 import operatorAddSlice from "./slices/operatorAddSlice";
 import poolUpdateSlice from "./slices/poolUpdateSlice";
-import updatePoolSlice from "./slices/updatePoolSlice"; // ✅ ADD THIS LINE
+import updatePoolSlice from "./slices/updatePoolSlice";
 import deletePoolSlice from "./slices/deletePoolSlice";
 import deleteOperatorSlice from "./slices/deleteOperatorSlice";
 import updateOperatorSlice from "./slices/updateOperatorSlice";
 import predictionSlice from "./slices/predictionSlice";
 import forecastSlice from "./slices/forecastSlice";
+import feedbackSlice from "./slices/feedbackSlice"; // ✅ ADD THIS IMPORT
 
 const store = configureStore({
   reducer: {
@@ -31,12 +32,13 @@ const store = configureStore({
     poolAdd: poolAddSlice,
     operatorAdd: operatorAddSlice,
     poolUpdate: poolUpdateSlice,
-    updatePool: updatePoolSlice, // ✅ ADD THIS LINE
+    updatePool: updatePoolSlice,
     deletePool: deletePoolSlice,
     deleteOperator: deleteOperatorSlice,
     updateOperator: updateOperatorSlice,
     prediction: predictionSlice,
     forecast: forecastSlice,
+    feedback: feedbackSlice, // ✅ ADD THIS LINE
   },
 });
 

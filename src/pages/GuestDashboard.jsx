@@ -1,5 +1,5 @@
-// =================== FULLY RESPONSIVE HARMONIZED GUEST DASHBOARD ===================
-// src/pages/GuestDashboard.jsx - Matching Dashboard.jsx design colors with full responsiveness
+// =================== FIXED GUEST DASHBOARD WITH SAFE LENGTH ACCESS ===================
+// src/pages/GuestDashboard.jsx - Fixed version with proper null checks
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -22,54 +22,37 @@ export const GuestDashboard = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const user = useSelector((state) => state.user?.user);
-  const { myFeedback, myFeedbackLoading } = useSelector(state => state.feedback || {
-    myFeedback: [],
-    myFeedbackLoading: false,
-    myFeedbackError: null,
-    allFeedback: [],
-    allFeedbackLoading: false,
-    allFeedbackError: null,
-    feedbackPagination: {
-      total: 0,
-      limit: 50,
-      offset: 0,
-      pages: 0
-    },
-    feedbackStats: null,
-    statsLoading: false,
-    statsError: null,
-    submitLoading: false,
-    submitError: null,
-    responseLoading: false,
-    responseError: null,
-    filters: {
-      status: 'all',
-      feedbackType: 'all',
-      priority: 'all',
-      sortBy: 'createdAt',
-      sortOrder: 'DESC'
-    }
-  });
+  
+  // ✅ FIXED: Safe access to feedback state with proper fallbacks
+  const feedbackState = useSelector(state => state.feedback) || {};
+  const { 
+    myFeedback = [], // ✅ Default to empty array
+    myFeedbackLoading = false,
+    myFeedbackError = null
+  } = feedbackState;
   
   const [activeTab, setActiveTab] = useState('overview');
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     // Fetch user's feedback when component mounts
-    dispatch(fetchMyFeedback());
+    if (user?.role === 'guest') {
+      dispatch(fetchMyFeedback());
+    }
     const timer = setTimeout(() => setIsVisible(true), 100);
     return () => clearTimeout(timer);
-  }, [dispatch]);
+  }, [dispatch, user]);
 
-  // Mock data for guest dashboard
+  // ✅ FIXED: Safe access to myFeedback.length with fallback
   const dashboardStats = {
     totalPools: 3,
     accessibleLocations: 1,
     lastVisit: new Date().toLocaleDateString(),
-    feedbackSubmitted: myFeedback.length
+    feedbackSubmitted: myFeedback?.length || 0 // ✅ Safe access with fallback
   };
 
-  const recentFeedback = myFeedback.slice(0, 3); // Show only 3 most recent
+  // ✅ FIXED: Safe slicing with proper checks
+  const recentFeedback = Array.isArray(myFeedback) ? myFeedback.slice(0, 3) : [];
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -121,7 +104,7 @@ export const GuestDashboard = () => {
           <div className="absolute -inset-0.5 sm:-inset-1 lg:-inset-2 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl sm:rounded-2xl lg:rounded-3xl opacity-20 group-hover:opacity-30 transition-opacity duration-300 blur-lg"></div>
           <div className="relative bg-white/10 backdrop-blur-lg rounded-xl sm:rounded-2xl lg:rounded-3xl p-3 xs:p-4 sm:p-6 lg:p-8 border border-white/20 hover:border-white/40 transition-all duration-300">
             <h2 className="text-base xs:text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold text-white mb-1 xs:mb-2">
-              Welcome back, {user?.fname}! 👋
+              Welcome back, {user?.fname || 'Guest'}! 👋
             </h2>
             <p className="text-cyan-200 text-xs xs:text-sm sm:text-base lg:text-lg">
               You have guest access to monitor pool data and share feedback. Explore the system and let us know your thoughts!
@@ -213,7 +196,7 @@ export const GuestDashboard = () => {
         </div>
       </div>
 
-      {/* Recent Feedback */}
+      {/* Recent Feedback - Only show if there's feedback */}
       {recentFeedback.length > 0 && (
         <div className={`transition-all duration-1000 delay-900 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
           <div className="relative group">
@@ -251,13 +234,13 @@ export const GuestDashboard = () => {
                           feedback.status === 'in_progress' ? 'bg-orange-500/20 text-orange-300 border-orange-400/30' :
                           'bg-blue-500/20 text-blue-300 border-blue-400/30'
                         }`}>
-                          {feedback.status.replace('_', ' ')}
+                          {feedback.status?.replace('_', ' ') || 'Unknown'}
                         </span>
                       </div>
                     </div>
                     <p className="text-xs xs:text-sm text-gray-300 line-clamp-2 leading-relaxed">{feedback.description}</p>
                     <div className="text-xs text-gray-400 mt-1 xs:mt-2">
-                      {new Date(feedback.createdAt).toLocaleDateString()}
+                      {feedback.createdAt ? new Date(feedback.createdAt).toLocaleDateString() : 'Unknown date'}
                     </div>
                   </div>
                 ))}
@@ -347,7 +330,7 @@ export const GuestDashboard = () => {
                         <Icon className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4" />
                         <span className="hidden xs:inline">{tab.label}</span>
                         <span className="xs:hidden">{tab.id === 'overview' ? 'Overview' : 'Feedback'}</span>
-                        {tab.id === 'feedback' && myFeedback.length > 0 && (
+                        {tab.id === 'feedback' && myFeedback?.length > 0 && (
                           <span className="bg-cyan-500/20 text-cyan-300 text-xs font-medium px-1 xs:px-1.5 sm:px-2 py-0.5 rounded-full border border-cyan-400/30 ml-0.5 xs:ml-1">
                             {myFeedback.length}
                           </span>
@@ -477,14 +460,6 @@ export const GuestDashboard = () => {
         @media (min-width: 1920px) {
           .ultra-wide-spacing {
             padding: 2rem 4rem;
-          }
-        }
-        
-        /* Smart TV optimizations */
-        @media (min-width: 2560px) {
-          .tv-optimized {
-            font-size: 1.5rem;
-            line-height: 1.8;
           }
         }
         

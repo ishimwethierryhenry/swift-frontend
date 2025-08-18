@@ -265,7 +265,7 @@ function Pool() {
             </div>
             <div className="overflow-hidden">
               <label className={`font-bold text-sm xs:text-base sm:text-lg lg:text-xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 block mt-1 xs:mt-2 transition-all duration-1000 delay-700 ${isVisible ? 'translate-y-0' : 'translate-y-full'}`}>
-                Device: The selected pool is under testing...
+                Device: The selected pool is currently under test...
               </label>
             </div>
             <div className="w-8 xs:w-12 sm:w-16 lg:w-20 xl:w-24 h-0.5 sm:h-1 bg-gradient-to-r from-cyan-400 to-blue-500 mx-auto rounded-full mt-2 xs:mt-3 sm:mt-4"></div>

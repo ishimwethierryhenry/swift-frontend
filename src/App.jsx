@@ -1,3 +1,4 @@
+// src/App.jsx - REVERT TO ORIGINAL
 import React from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import DefaultLayout from "./layouts/DefaultLayout";
@@ -5,7 +6,7 @@ import Login from "./pages/Login";
 import Pool from "./pages/Pool";
 import { Dashboard } from "./pages/Dashboard";
 import { GuestDashboard } from "./pages/GuestDashboard";
-import GuestFeedback from "./pages/GuestFeedback"; // Add this import
+import GuestFeedback from "./pages/GuestFeedback";
 import { DashboardLayout } from "./layouts/DashboardLayout";
 import { AddPool } from "./pages/AddPool";
 import { AddOperators } from "./pages/AddOperators";
@@ -38,7 +39,7 @@ const routes = [
         element: <GuestDashboard />,
       },
       {
-        path: "/feedback", // Add feedback route
+        path: "/feedback",
         element: <GuestFeedback />,
       },
       {
@@ -83,4 +84,4 @@ const App = () => {
   return router;
 };
 
-export default App; 
+export default App;
