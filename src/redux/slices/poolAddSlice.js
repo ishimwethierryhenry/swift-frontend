@@ -41,7 +41,7 @@ export const registerPool = createAsyncThunk("pools/add", async (data) => {
       progress: undefined,
       theme: "light",
     });
-    throw err;
+    throw error;
   }
 });
 
@@ -71,4 +71,4 @@ const poolAddSlice = createSlice({
   },
 });
 
-export default poolAddSlice;
+export default poolAddSlice.reducer;

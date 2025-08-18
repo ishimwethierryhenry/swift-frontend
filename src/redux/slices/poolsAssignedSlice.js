@@ -32,7 +32,7 @@ export const poolsAssigned = createAsyncThunk("pools/assigned", async (id) => {
       progress: undefined,
       theme: "light",
     });
-    throw err;
+    throw error; // ⚠️ Fixed: was "throw err"
   }
 });
 
@@ -44,9 +44,19 @@ const poolsAssignedSlice = createSlice({
     error: null,
     serverResponded: false,
   },
+  reducers: {
+    // ADD THIS:
+    resetAssignedPoolsState: (state) => {
+      state.response = null;
+      state.loading = false;
+      state.error = null;
+      state.serverResponded = false;
+    },
+  },
   extraReducers: (builder) => {
     builder.addCase(poolsAssigned.pending, (state) => {
       state.loading = true;
+      state.serverResponded = false; // Reset on new request
     });
     builder.addCase(poolsAssigned.fulfilled, (state, action) => {
       state.loading = false;
@@ -57,9 +67,9 @@ const poolsAssignedSlice = createSlice({
     builder.addCase(poolsAssigned.rejected, (state, action) => {
       state.loading = false;
       state.error = { ...action.error };
-      state.serverResponded = false;
+      state.serverResponded = true; // ⚠️ Fixed: changed from false to true
     });
   },
 });
 
-export default poolsAssignedSlice;
+export default poolsAssignedSlice.reducer;

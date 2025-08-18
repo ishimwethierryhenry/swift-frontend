@@ -1,8 +1,8 @@
-// UPDATED Sidebar.jsx - Guest Access Limited to Monitor and History Only
+// UPDATED Sidebar.jsx - Added Guest Dashboard Access
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
-import { MdDashboard } from "react-icons/md";
+import { MdDashboard, MdFeedback } from "react-icons/md";
 import { LiaSwimmingPoolSolid } from "react-icons/lia";
 import { GrUserManager } from "react-icons/gr";
 import { BiSolidNetworkChart } from "react-icons/bi";
@@ -41,6 +41,7 @@ export const SideNav = ({ label, destination, active = false, isCollapsed }) => 
     
     switch(label) {
       case "Overview":
+      case "Dashboard": // Added for guest dashboard
         return <MdDashboard className={iconClass} size={size} />;
       case "Monitor":
         return <IoMdWater className={iconClass} size={size} />;
@@ -53,6 +54,8 @@ export const SideNav = ({ label, destination, active = false, isCollapsed }) => 
         return <BiSolidNetworkChart className={iconClass} size={size} />;
       case "History":
         return <FaHistory className={iconClass} size={size} />;
+      case "Feedback":
+        return <MdFeedback className={iconClass} size={size} />;
       default:
         return null;
     }
@@ -179,19 +182,26 @@ export const Sidebar = () => {
           {/* Navigation Section - Responsive */}
           <nav className="flex-1 px-2 lg:px-4 py-4 lg:py-6 space-y-2 lg:space-y-3 overflow-y-auto">
             
-            {/* Overview - Only for non-guest users */}
-            {userRole !== "guest" && (
-              <div className={`transition-all duration-500 delay-200 ${
-                isVisible ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'
-              }`}>
+            {/* Dashboard - Different for guests vs other users */}
+            <div className={`transition-all duration-500 delay-200 ${
+              isVisible ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'
+            }`}>
+              {userRole === "guest" ? (
+                <SideNav
+                  label="Dashboard"
+                  destination="/guest-dashboard"
+                  active={activeLink === "Dashboard"}
+                  isCollapsed={isCollapsed}
+                />
+              ) : (
                 <SideNav
                   label="Overview"
                   destination="/dashboard"
                   active={activeLink === "Overview"}
                   isCollapsed={isCollapsed}
                 />
-              </div>
-            )}
+              )}
+            </div>
             
             {/* Monitor - Available to all users */}
             <div className={`transition-all duration-500 delay-250 ${
@@ -214,6 +224,20 @@ export const Sidebar = () => {
                   label="Pools"
                   destination="/pool/create"
                   active={activeLink === "Pools"}
+                  isCollapsed={isCollapsed}
+                />
+              </div>
+            )}
+
+            {/* Feedback - Only for guest users */}
+            {userRole === "guest" && (
+              <div className={`transition-all duration-500 delay-350 ${
+                isVisible ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'
+              }`}>
+                <SideNav
+                  label="Feedback"
+                  destination="/feedback"
+                  active={activeLink === "Feedback"}
                   isCollapsed={isCollapsed}
                 />
               </div>
@@ -300,7 +324,7 @@ export const Sidebar = () => {
                 <div className="flex items-center space-x-2">
                   <FiEye className="text-gray-400" size={12} />
                   <p className="text-xs text-gray-300 font-medium">
-                    Guest • Monitor, Predict & History
+                    Guest • Dashboard, Monitor, Feedback
                   </p>
                 </div>
               </div>

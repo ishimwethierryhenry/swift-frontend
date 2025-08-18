@@ -1,38 +1,40 @@
-// 7. UPDATED src/redux/store.js
+// src/redux/store.js - UPDATED VERSION
 import { configureStore } from "@reduxjs/toolkit";
-import predictionSlice from "./slices/predictionSlice";
-import activeLinksSlice from "./slices/activeLinkSlice";
-import userSlice from "./slices/userSlice";
 import loginSlice from "./slices/loginSlice";
+import userSlice from "./slices/userSlice";
+import activeLinkSlice from "./slices/activeLinkSlice";
+import locationsSlice from "./slices/locationsSlice";
 import poolsAssignedSlice from "./slices/poolsAssignedSlice";
 import poolsByLocationSlice from "./slices/poolsByLocationSlice";
 import operatorsByLocationSlice from "./slices/operatorsByLocationSlice";
-import guestsByLocationSlice from "./slices/guestsByLocationSlice"; // Add this import
+import guestsByLocationSlice from "./slices/guestsByLocationSlice";
 import poolAddSlice from "./slices/poolAddSlice";
 import operatorAddSlice from "./slices/operatorAddSlice";
-import locationsSlice from "./slices/locationsSlice";
 import poolUpdateSlice from "./slices/poolUpdateSlice";
-import forecastSlice from "./slices/forecastSlice";
 import deletePoolSlice from "./slices/deletePoolSlice";
 import deleteOperatorSlice from "./slices/deleteOperatorSlice";
+import updateOperatorSlice from "./slices/updateOperatorSlice"; // ✅ ADD THIS LINE
+import predictionSlice from "./slices/predictionSlice";
+import forecastSlice from "./slices/forecastSlice";
 
 const store = configureStore({
   reducer: {
-    prediction: predictionSlice.reducer,
-    activeLinks: activeLinksSlice.reducer,
-    user: userSlice.reducer,
-    login: loginSlice.reducer,
-    assignedPools: poolsAssignedSlice.reducer,
-    poolsByLocation: poolsByLocationSlice.reducer,
-    operatorsByLocation: operatorsByLocationSlice.reducer,
-    guestsByLocation: guestsByLocationSlice.reducer, // Add this line
-    pools: poolAddSlice.reducer,
-    operators: operatorAddSlice.reducer,
-    locations: locationsSlice.reducer,
-    poolUpdate: poolUpdateSlice.reducer,
-    forecast: forecastSlice.reducer,
-    deletePool: deletePoolSlice.reducer,
-    deleteOperator: deleteOperatorSlice.reducer,
+    login: loginSlice,
+    user: userSlice,
+    activeLinks: activeLinkSlice,
+    locations: locationsSlice,
+    assignedPools: poolsAssignedSlice,
+    poolsByLocation: poolsByLocationSlice,
+    operatorsByLocation: operatorsByLocationSlice,
+    guestsByLocation: guestsByLocationSlice,
+    poolAdd: poolAddSlice,
+    operatorAdd: operatorAddSlice,
+    poolUpdate: poolUpdateSlice,
+    deletePool: deletePoolSlice,
+    deleteOperator: deleteOperatorSlice,
+    updateOperator: updateOperatorSlice, // ✅ ADD THIS LINE
+    prediction: predictionSlice,
+    forecast: forecastSlice,
   },
 });
 

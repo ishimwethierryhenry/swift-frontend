@@ -25,15 +25,19 @@ export default function Login() {
     setIsVisible(true);
   }, []);
 
-  // Navigate to dashboard when login is successful - Updated for guest access
   useEffect(() => {
-    if (authHandler.serverResponded) {
-      const userRole = localStorage.getItem("user_role");
-      
-      // All users go to the same dashboard, but guests will have restricted access
+  if (authHandler?.serverResponded) {
+    const userRole = localStorage.getItem("user_role");
+    
+    // Redirect based on user role
+    if (userRole === "guest") {
+      navigation("/guest-dashboard");
+    } else {
+      // Admin, operator, overseer go to main dashboard
       navigation("/dashboard");
     }
-  }, [authHandler.serverResponded, navigation]);
+  }
+}, [authHandler?.serverResponded, navigation]);
 
   const handleInput = (e) => {
     e.preventDefault();

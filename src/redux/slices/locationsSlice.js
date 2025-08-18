@@ -34,7 +34,7 @@ export const getLocations = createAsyncThunk(
         progress: undefined,
         theme: "light",
       });
-      throw err;
+      throw error; // ⚠️ Fixed: was "throw err"
     }
   }
 );
@@ -47,9 +47,19 @@ const locationsSlice = createSlice({
     error: null,
     serverResponded: false,
   },
+  reducers: {
+    // ADD THIS:
+    resetLocationsState: (state) => {
+      state.response = null;
+      state.loading = false;
+      state.error = null;
+      state.serverResponded = false;
+    },
+  },
   extraReducers: (builder) => {
     builder.addCase(getLocations.pending, (state) => {
       state.loading = true;
+      state.serverResponded = false; // Reset on new request
     });
     builder.addCase(getLocations.fulfilled, (state, action) => {
       state.loading = false;
@@ -60,9 +70,9 @@ const locationsSlice = createSlice({
     builder.addCase(getLocations.rejected, (state, action) => {
       state.loading = false;
       state.error = { ...action.error };
-      state.serverResponded = false;
+      state.serverResponded = true; // ⚠️ Fixed: changed from false to true
     });
   },
 });
 
-export default locationsSlice;
+export default locationsSlice.reducer;

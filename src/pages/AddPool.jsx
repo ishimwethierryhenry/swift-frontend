@@ -8,11 +8,18 @@ import { activeLinksActions } from "../redux/slices/activeLinkSlice";
 export const AddPool = () => {
   const dispatch = useDispatch();
   const userLocation = localStorage.getItem("user_location");
-  const addOperatorsState = useSelector((state) => state.pools);
-  const operatorsAvailableState = useSelector(
-    (state) => state.operatorsByLocation
-  );
-
+  const addOperatorsState = useSelector((state) => state.poolAdd || {
+  response: null,
+  loading: false,
+  error: null,
+  serverResponded: false,
+});
+  const operatorsAvailableState = useSelector((state) => state.operatorsByLocation || {
+  response: null,
+  loading: false,
+  error: null,
+  serverResponded: false,
+});
   const [operators, setOperators] = useState([]);
   const [errors, setErrors] = useState({});
   const [isVisible, setIsVisible] = useState(false);
@@ -76,19 +83,17 @@ export const AddPool = () => {
 
   // Clear form after successful registration
   useEffect(() => {
-    if (addOperatorsState.serverResponded && !addOperatorsState.loading && !addOperatorsState.error) {
-      // Reset form fields to initial state
-      setSubmitData(initialFormState);
-      // Clear any validation errors
-      setErrors({});
-    }
-  }, [addOperatorsState.serverResponded, addOperatorsState.loading, addOperatorsState.error]);
+  if (addOperatorsState?.serverResponded && !addOperatorsState?.loading && !addOperatorsState?.error) {
+    setSubmitData(initialFormState);
+    setErrors({});
+  }
+}, [addOperatorsState?.serverResponded, addOperatorsState?.loading, addOperatorsState?.error]);
 
   useEffect(() => {
-    if (operatorsAvailableState.serverResponded) {
-      setOperators(operatorsAvailableState.response);
-    }
-  }, [operatorsAvailableState.serverResponded]);
+  if (operatorsAvailableState?.serverResponded && operatorsAvailableState?.response) {
+    setOperators(operatorsAvailableState.response);
+  }
+}, [operatorsAvailableState?.serverResponded, operatorsAvailableState?.response]);
 
   useEffect(() => {
     dispatch(operatorsAvailable(userLocation));
@@ -270,7 +275,7 @@ export const AddPool = () => {
                       className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:from-gray-500 disabled:to-gray-600 text-white text-lg sm:text-xl font-semibold px-8 sm:px-12 py-3 sm:py-4 rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-cyan-500/50 group relative overflow-hidden disabled:cursor-not-allowed disabled:transform-none min-h-[48px]"
                     >
                       <span className="relative z-10">
-                        {addOperatorsState.loading ? 'Adding Pool...' : 'Add Pool'}
+                        {addOperatorsState?.loading ? 'Adding Pool...' : 'Add Pool'}
                       </span>
                       <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     </button>

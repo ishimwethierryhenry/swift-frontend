@@ -1,4 +1,4 @@
-// redux/slices/deletePoolSlice.js
+// src/redux/slices/deletePoolSlice.js
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -75,10 +75,10 @@ const deletePoolSlice = createSlice({
     builder.addCase(deletePool.rejected, (state, action) => {
       state.loading = false;
       state.error = { ...action.error };
-      state.serverResponded = false;
+      state.serverResponded = true; // ⚠️ FIXED: Changed from false to true
     });
   },
 });
 
 export const { resetDeletePoolState } = deletePoolSlice.actions;
-export default deletePoolSlice;
+export default deletePoolSlice.reducer;

@@ -45,7 +45,7 @@ export const updatePool = createAsyncThunk(
         progress: undefined,
         theme: "light",
       });
-      throw err;
+      throw error;
     }
   }
 );
@@ -76,4 +76,4 @@ const poolUpdateSlice = createSlice({
   },
 });
 
-export default poolUpdateSlice;
+export default poolUpdateSlice.reducer;

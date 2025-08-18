@@ -18,22 +18,19 @@ export const auth = createAsyncThunk(
         data: { email: submitData.email, pwd: submitData.pwd },
       });
 
-      console.log('🔍 Frontend received response:', response.data); // Add this
-
+      console.log('🔍 Frontend received response:', response.data);
 
       if (response.status == 200) {
         const { token } = response.data;
 
-        console.log('🔍 Token received:', token); // Add this
-
+        console.log('🔍 Token received:', token);
 
         if (token) {
           localStorage.setItem("token", token);
 
           const data = tokenDec(token);
 
-          console.log('🔍 Decoded token data:', data); // Add this
-
+          console.log('🔍 Decoded token data:', data);
 
           if (data) {
             dispatch(userActions.setUserData(data.user));
@@ -54,7 +51,7 @@ export const auth = createAsyncThunk(
     } catch (error) {
       console.log(error);
       toast.error(`Signin failed: ${error.message}`);
-      throw err;
+      throw error; // Fix: was "throw err" - should be "throw error"
     }
   }
 );
@@ -71,10 +68,17 @@ const loginSlice = createSlice({
     setRole(state, action) {
       state.role = action.payload;
     },
+    clearLoginState(state) { // Add this reducer
+      state.response = null;
+      state.loading = false;
+      state.error = null;
+      state.serverResponded = false;
+    }
   },
   extraReducers: (builder) => {
     builder.addCase(auth.pending, (state) => {
       state.loading = true;
+      state.serverResponded = false; // Reset on new request
     });
     builder.addCase(auth.fulfilled, (state, action) => {
       state.loading = false;
@@ -85,9 +89,10 @@ const loginSlice = createSlice({
     builder.addCase(auth.rejected, (state, action) => {
       state.loading = false;
       state.error = { ...action.error };
-      state.serverResponded = false;
+      state.serverResponded = true; // Should be true even on error
     });
   },
 });
+
 export const loginActions = loginSlice.actions;
-export default loginSlice;
+export default loginSlice.reducer; // ⚠️ CRITICAL FIX: Export the reducer, not the slice!

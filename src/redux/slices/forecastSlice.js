@@ -38,7 +38,7 @@ export const forecast = createAsyncThunk(
         progress: undefined,
         theme: "light",
       });
-      throw err;
+      throw error;
     }
   }
 );
@@ -78,4 +78,4 @@ const forecastSlice = createSlice({
 });
 
 export const forecastActions = forecastSlice.actions;
-export default forecastSlice;
+export default forecastSlice.reducer;

@@ -7,7 +7,15 @@ import { activeLinksActions } from "../redux/slices/activeLinkSlice";
 export const AddOperators = () => {
   const dispatch = useDispatch();
   const userLocation = localStorage.getItem("user_location");
-  const addOperatorsState = useSelector((state) => state.operators);
+  const addOperatorsState = useSelector((state) => state.operatorAdd || {
+  response: null,
+  loading: false,
+  error: null,
+  serverResponded: false,
+  success: false,
+  status: null
+});
+
 
   const [errors, setErrors] = useState({});
   const [isVisible, setIsVisible] = useState(false);

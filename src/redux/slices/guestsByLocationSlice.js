@@ -50,6 +50,15 @@ const guestsByLocationSlice = createSlice({
     error: null,
     serverResponded: false,
   },
+  reducers: {
+    // ADD THIS:
+    resetGuestsState: (state) => {
+      state.response = null;
+      state.loading = false;
+      state.error = null;
+      state.serverResponded = false;
+    },
+  },
   extraReducers: (builder) => {
     builder.addCase(guestsAvailable.pending, (state) => {
       state.loading = true;
@@ -68,4 +77,5 @@ const guestsByLocationSlice = createSlice({
   },
 });
 
-export default guestsByLocationSlice;
+// Export the action
+export default guestsByLocationSlice.reducer;  // ✅ Should be this 

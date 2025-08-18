@@ -1,4 +1,4 @@
-// redux/slices/deleteOperatorSlice.js
+// src/redux/slices/deleteOperatorSlice.js
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -75,10 +75,10 @@ const deleteOperatorSlice = createSlice({
     builder.addCase(deleteOperator.rejected, (state, action) => {
       state.loading = false;
       state.error = { ...action.error };
-      state.serverResponded = false;
+      state.serverResponded = true; // ⚠️ FIXED: Changed from false to true
     });
   },
 });
 
 export const { resetDeleteOperatorState } = deleteOperatorSlice.actions;
-export default deleteOperatorSlice;
+export default deleteOperatorSlice.reducer;

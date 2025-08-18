@@ -12,20 +12,36 @@ import { deletePool, resetDeletePoolState } from "../redux/slices/deletePoolSlic
 import { deleteOperator, resetDeleteOperatorState } from "../redux/slices/deleteOperatorSlice";
 import MQTTlive from "../service/MQTTlive";
 import waterQualityService from '../services/waterQualityService';
+import { ModalOperator } from "../components/ModalOperator"; // Add this line 
+
 
 
 export const Dashboard = () => {
   const userState = useSelector((state) => state.user.user);
   const loginState = useSelector((state) => state.login);
-  const poolsAssignedState = useSelector((state) => state.assignedPools);
+  const poolsAssignedState = useSelector((state) => state.assignedPools || {
+  response: null,
+  loading: false,
+  error: null,
+  serverResponded: false,
+});
   const poolsAvailableState = useSelector((state) => state.poolsByLocation);
   const locationsState = useSelector((state) => state.locations);
   const operatorsAvailableState = useSelector(
     (state) => state.operatorsByLocation
   );
-  const deletePoolState = useSelector((state) => state.deletePool || {});
-  const deleteOperatorState = useSelector((state) => state.deleteOperator || {});
-
+  const deletePoolState = useSelector((state) => state.deletePool || {
+  response: null,
+  loading: false,
+  error: null,
+  serverResponded: false,
+});
+  const deleteOperatorState = useSelector((state) => state.deleteOperator || {
+  response: null,
+  loading: false,
+  error: null,
+  serverResponded: false,
+});
   const dispatch = useDispatch();
   const userId = localStorage.getItem("user_id");
   const userRole = localStorage.getItem("user_role");
@@ -67,6 +83,7 @@ export const Dashboard = () => {
   const [poolDeleteModal, setPoolDeleteModal] = useState({
     id: null,
     open: false,
+    data: null,
   });
   const [operatorEditModal, setOperatorEditModal] = useState({
     id: null,
@@ -277,6 +294,19 @@ const handleTestDataReceived = async (pool, data) => {
   }
 };
 
+// Add this function after your other handler functions (around line 280)
+const confirmDeletePool = async (poolId) => {
+  try {
+    console.log("Deleting pool with ID:", poolId);
+    // Dispatch the delete action
+    dispatch(deletePool(poolId));
+    // Close the modal
+    setPoolDeleteModal({ id: null, open: false, data: null });
+  } catch (error) {
+    console.error("Failed to delete pool:", error);
+  }
+};
+
 // Complete the test - UPDATED VERSION
 const completeTest = async (pool) => {
   const poolName = pool.name;
@@ -420,31 +450,74 @@ const completeTest = async (pool) => {
   };
   
   const handleDeletePool = (pool) => {
-    setPoolDeleteModal({ id: pool.id || pool._id, open: true, data: pool });
-  };
+  console.log("Delete pool clicked:", pool); // Debug log
+  setPoolDeleteModal({ 
+    id: pool.id || pool._id, 
+    open: true, 
+    data: pool 
+  });
+  // Make sure operator modal is closed
+  setOperatorDeleteModal({ id: null, open: false, data: null });
+};
 
+    // ✅ FIXED: Proper View function
   const handleViewOperator = (operator) => {
     console.log("View operator:", operator);
-    alert(`Viewing operator: ${operator.fname || 'N/A'} ${operator.lname || ''}\nEmail: ${operator.email || 'N/A'}`);
+    // Set operator modal state for viewing
+    setOperatorEditModal({ 
+      id: operator.id || operator._id, 
+      open: true, 
+      data: { ...operator, mode: 'view' } // Add view mode
+    });
   };
   
+  // ✅ FIXED: Proper Edit function  
   const handleEditOperator = (operator) => {
     console.log("Edit operator:", operator);
-    alert(`Edit operator: ${operator.fname || 'N/A'} ${operator.lname || ''}\nEmail: ${operator.email || 'N/A'}`);
-  };
-  
-  const handleDeleteOperator = (operator) => {
-    setOperatorDeleteModal({ id: operator.id || operator._id, open: true, data: operator });
+    // Set operator modal state for editing
+    setOperatorEditModal({ 
+      id: operator.id || operator._id, 
+      open: true, 
+      data: { ...operator, mode: 'edit' } // Add edit mode
+    });
   };
 
+  
+  const handleDeleteOperator = (operator) => {
+  console.log("Delete operator clicked:", operator); // Debug log
+  setOperatorDeleteModal({ 
+    id: operator.id || operator._id, 
+    open: true, 
+    data: operator 
+  });
+  // Make sure pool modal is closed
+  setPoolDeleteModal({ id: null, open: false, data: null });
+};
+
+
+    // ✅ FIXED: Complete Delete function
   const confirmDeleteOperator = async (operatorId) => {
     try {
-      console.log("Delete operator with ID:", operatorId);
+      console.log("Deleting operator with ID:", operatorId);
+      // Dispatch the delete action (same pattern as pool delete)
+      dispatch(deleteOperator(operatorId));
+      // Close the modal
       setOperatorDeleteModal({ id: null, open: false, data: null });
     } catch (error) {
       console.error("Failed to delete operator:", error);
     }
   };
+
+
+    // Add this useEffect for operator delete success
+  useEffect(() => {
+    if (deleteOperatorState?.serverResponded && deleteOperatorState?.response) {
+      if (userRole === "admin") {
+        dispatch(operatorsAvailable(userLocation));
+      }
+      dispatch(resetDeleteOperatorState());
+    }
+  }, [deleteOperatorState?.serverResponded, deleteOperatorState?.response, userRole, userLocation, dispatch]);
 
   // Handle delete pool success - refresh the pools list
   useEffect(() => {
@@ -781,54 +854,55 @@ const completeTest = async (pool) => {
                   
                   {/* Operators Display */}
                   <div className="bg-white/5 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-white/10">
-                    {/* Desktop Table View */}
-                    <div className="hidden lg:block overflow-x-auto">
-                      <table className="w-full text-white">
-                        <thead>
-                          <tr className="border-b border-white/20">
-                            <th className="text-left p-3 font-semibold text-sm">FIRST NAME</th>
-                            <th className="text-left p-3 font-semibold text-sm">LAST NAME</th>
-                            <th className="text-left p-3 font-semibold text-sm">PHONE NUMBER</th>
-                            <th className="text-left p-3 font-semibold text-sm">EMAIL</th>
-                            <th className="text-left p-3 font-semibold text-sm">LOCATION</th>
-                            <th className="text-left p-3 font-semibold text-sm">ACTIONS</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {operators.map((operator, index) => (
-                            <tr key={index} className="border-b border-white/10">
-                              <td className="p-3 text-sm">{operator.fname || 'N/A'}</td>
-                              <td className="p-3 text-sm">{operator.lname || 'N/A'}</td>
-                              <td className="p-3 text-sm">{operator.phone || 'N/A'}</td>
-                              <td className="p-3 text-sm">{operator.email || 'N/A'}</td>
-                              <td className="p-3 text-sm">{operator.location || 'N/A'}</td>
-                              <td className="p-3">
-                                <div className="flex gap-2">
-                                  <button 
-                                    onClick={() => handleViewOperator(operator)}
-                                    className="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600"
-                                  >
-                                    View
-                                  </button>
-                                  <button 
-                                    onClick={() => handleEditOperator(operator)}
-                                    className="bg-yellow-500 text-white px-3 py-1 rounded text-xs hover:bg-yellow-600"
-                                  >
-                                    Edit
-                                  </button>
-                                  <button 
-                                    onClick={() => handleDeleteOperator(operator)}
-                                    className="bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600"
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    {/* Desktop Table View - Add back the View button */}
+               <div className="hidden lg:block overflow-x-auto">
+                 <table className="w-full text-white">
+                   <thead>
+                     <tr className="border-b border-white/20">
+                       <th className="text-left p-3 font-semibold text-sm">FIRST NAME</th>
+                       <th className="text-left p-3 font-semibold text-sm">LAST NAME</th>
+                       <th className="text-left p-3 font-semibold text-sm">PHONE NUMBER</th>
+                       <th className="text-left p-3 font-semibold text-sm">EMAIL</th>
+                       <th className="text-left p-3 font-semibold text-sm">LOCATION</th>
+                       <th className="text-left p-3 font-semibold text-sm">ACTIONS</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     {operators.map((operator, index) => (
+                       <tr key={index} className="border-b border-white/10">
+                         <td className="p-3 text-sm">{operator.fname || 'N/A'}</td>
+                         <td className="p-3 text-sm">{operator.lname || 'N/A'}</td>
+                         <td className="p-3 text-sm">{operator.phone || 'N/A'}</td>
+                         <td className="p-3 text-sm">{operator.email || 'N/A'}</td>
+                         <td className="p-3 text-sm">{operator.location || 'N/A'}</td>
+                         <td className="p-3">
+                           <div className="flex gap-2">
+                             {/* ✅ ADD BACK THE VIEW BUTTON */}
+                             <button 
+                               onClick={() => handleViewOperator(operator)}
+                               className="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600"
+                             >
+                               View
+                             </button>
+                             <button 
+                               onClick={() => handleEditOperator(operator)}
+                               className="bg-yellow-500 text-white px-3 py-1 rounded text-xs hover:bg-yellow-600"
+                             >
+                               Edit
+                             </button>
+                             <button 
+                               onClick={() => handleDeleteOperator(operator)}
+                               className="bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600"
+                             >
+                               Delete
+                             </button>
+                           </div>
+                         </td>
+                       </tr>
+                     ))}
+                   </tbody>
+                 </table>
+               </div>
 
                     {/* Mobile/Tablet Card View */}
                     <div className="lg:hidden space-y-3 sm:space-y-4">
@@ -1247,36 +1321,45 @@ const completeTest = async (pool) => {
         </div>
       </div>
 
-      {/* Modals */}
-      {poolEditModal.open && (
-        <ModalPool
-          data={poolEditModal.data}
-          operators={operators}
-          Fn={setPoolEditModal}
-        />
-      )}
-      {poolDeleteModal.open && (
-        <ModalDeletePool 
-          Fn={setPoolDeleteModal} 
-          data={poolDeleteModal.data}
-          loading={deletePoolState?.loading || false}
-        />
-      )}
-      {operatorDeleteModal.open && (
-        <ModalDeleteOperator 
-          Fn={setOperatorDeleteModal}
-          data={operatorDeleteModal.data}
-          onConfirmDelete={confirmDeleteOperator}
-          loading={deleteOperatorState?.loading || false}
-        />
-      )}
-      {locationModal.open && (
-        <ModalLocation
-          role={userRole}
-          location={locationModal.id}
-          Fn={setLocationModal}
-        />
-      )}
+             {/* Modals */}
+       {poolEditModal.open && (
+         <ModalPool
+           data={poolEditModal.data}
+           operators={operators}
+           Fn={setPoolEditModal}
+         />
+       )}
+       {poolDeleteModal.open && (
+         <ModalDeletePool 
+           Fn={setPoolDeleteModal} 
+           data={poolDeleteModal.data}
+           onConfirmDelete={confirmDeletePool}
+           loading={deletePoolState?.loading || false}
+         />
+       )}
+       {/* ✅ ADD OPERATOR EDIT MODAL */}
+       {operatorEditModal.open && (
+         <ModalOperator  // You'll need to create this component
+           data={operatorEditModal.data}
+           Fn={setOperatorEditModal}
+           mode={operatorEditModal.data?.mode || 'edit'}
+         />
+       )}
+       {operatorDeleteModal.open && (
+         <ModalDeleteOperator 
+           Fn={setOperatorDeleteModal}
+           data={operatorDeleteModal.data}
+           onConfirmDelete={confirmDeleteOperator}
+           loading={deleteOperatorState?.loading || false}
+         />
+       )}
+       {locationModal.open && (
+         <ModalLocation
+           role={userRole}
+           location={locationModal.id}
+           Fn={setLocationModal}
+         />
+       )}
 
       {/* Custom Styles */}
       <style jsx>{`

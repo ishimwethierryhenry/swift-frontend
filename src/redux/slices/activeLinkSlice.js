@@ -13,4 +13,4 @@ const activeLinksSlice = createSlice({
 });
 
 export const activeLinksActions = activeLinksSlice.actions;
-export default activeLinksSlice;
+export default activeLinksSlice.reducer; // ⚠️ ADD .reducer here!

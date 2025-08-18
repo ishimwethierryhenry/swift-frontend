@@ -9,9 +9,19 @@ import {
 
 export const Predict = () => {
   const dispatch = useDispatch();
-  const forecastState = useSelector((state) => state.forecast);
-  const forecastAdvState = useSelector((state) => state.prediction);
+  const forecastState = useSelector((state) => state.forecast || {
+  response: null,
+  loading: false,
+  error: null,
+  serverResponded: false,
+});
 
+  const forecastAdvState = useSelector((state) => state.availability || {
+  response: null,
+  loading: false,
+  error: null,
+  serverResponded: false,
+});
   const [isVisible, setIsVisible] = useState(false);
   const [forecastData, setForecastData] = useState({
     day: null,
@@ -63,18 +73,18 @@ export const Predict = () => {
   };
 
   useEffect(() => {
-    if (forecastAdvState.serverResponded) {
-      console.log(forecastAdvState.response);
-      if (forecastAdvState.response.error) setPredictionError(true);
-      setForecastAdvResponse(forecastAdvState.response);
-    }
-  }, [forecastAdvState.serverResponded]);
+  if (forecastAdvState?.serverResponded && forecastAdvState?.response) {
+    console.log(forecastAdvState.response);
+    if (forecastAdvState.response.error) setPredictionError(true);
+    setForecastAdvResponse(forecastAdvState.response);
+  }
+}, [forecastAdvState?.serverResponded, forecastAdvState?.response]);
 
   useEffect(() => {
-    if (forecastState.serverResponded) {
-      setForecastResponse(forecastState.response);
-    }
-  }, [forecastState.serverResponded]);
+  if (forecastState?.serverResponded && forecastState?.response) {
+    setForecastResponse(forecastState.response);
+  }
+}, [forecastState?.serverResponded, forecastState?.response]);
 
   useEffect(() => {
     dispatch(activeLinksActions.setActiveLink("Prediction"));
@@ -206,7 +216,7 @@ export const Predict = () => {
                         disabled={forecastState.loading}
                         className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:from-gray-500 disabled:to-gray-600 text-white font-semibold px-6 sm:px-8 py-3 rounded-lg sm:rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-cyan-500/25 disabled:cursor-not-allowed disabled:transform-none min-h-[44px] text-sm sm:text-base"
                       >
-                        {forecastState.loading ? 'Predicting...' : 'Predict'}
+                        {forecastState?.loading ? 'Predicting...' : 'Predict'}
                       </button>
                     </div>
                   </div>
@@ -339,7 +349,7 @@ export const Predict = () => {
                       onClick={() => handleForecastAdvanced()}
                       className="w-full sm:w-auto bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold px-6 py-3 rounded-lg sm:rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-purple-500/25 min-h-[44px] text-sm sm:text-base"
                     >
-                      {forecastAdvState.loading ? 'Predicting...' : 'Run Prediction'}
+                      {forecastAdvState?.loading ? 'Predicting...' : 'Run Prediction'}
                     </button>
                   )}
                 </div>

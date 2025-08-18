@@ -41,7 +41,7 @@ export const registerOperator = createAsyncThunk("users/add", async (data) => {
       progress: undefined,
       theme: "light",
     });
-    throw err;
+    throw error;
   }
 });
 
@@ -71,4 +71,4 @@ const operatorAddSlice = createSlice({
   },
 });
 
-export default operatorAddSlice;
+export default operatorAddSlice.reducer;

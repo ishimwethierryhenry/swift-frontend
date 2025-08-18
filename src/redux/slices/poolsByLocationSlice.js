@@ -36,7 +36,7 @@ export const poolsAvailable = createAsyncThunk(
         progress: undefined,
         theme: "light",
       });
-      throw err;
+      throw error; // ⚠️ Fixed: was "throw err"
     }
   }
 );
@@ -49,9 +49,19 @@ const poolsByLocationSlice = createSlice({
     error: null,
     serverResponded: false,
   },
+  reducers: {
+    // ADD THIS:
+    resetPoolsByLocationState: (state) => {
+      state.response = null;
+      state.loading = false;
+      state.error = null;
+      state.serverResponded = false;
+    },
+  },
   extraReducers: (builder) => {
     builder.addCase(poolsAvailable.pending, (state) => {
       state.loading = true;
+      state.serverResponded = false; // Reset on new request
     });
     builder.addCase(poolsAvailable.fulfilled, (state, action) => {
       state.loading = false;
@@ -62,9 +72,9 @@ const poolsByLocationSlice = createSlice({
     builder.addCase(poolsAvailable.rejected, (state, action) => {
       state.loading = false;
       state.error = { ...action.error };
-      state.serverResponded = false;
+      state.serverResponded = true; // ⚠️ Fixed: changed from false to true
     });
   },
 });
 
-export default poolsByLocationSlice;
+export default poolsByLocationSlice.reducer;

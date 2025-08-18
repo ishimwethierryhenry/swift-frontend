@@ -41,7 +41,7 @@ export const predictionNow = createAsyncThunk("prediction/now", async () => {
       progress: undefined,
       theme: "light",
     });
-    throw err;
+    throw error;
   }
 });
 
@@ -80,4 +80,4 @@ const predictionSlice = createSlice({
 });
 
 export const predictionActions = predictionSlice.actions;
-export default predictionSlice;
+export default predictionSlice.reducer;
