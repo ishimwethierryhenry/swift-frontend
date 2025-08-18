@@ -1,4 +1,4 @@
-// UPDATED Sidebar.jsx - Compact Guest Notice
+// UPDATED Sidebar.jsx - Guest Access Limited to Monitor and History Only
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
@@ -178,17 +178,22 @@ export const Sidebar = () => {
 
           {/* Navigation Section - Responsive */}
           <nav className="flex-1 px-2 lg:px-4 py-4 lg:py-6 space-y-2 lg:space-y-3 overflow-y-auto">
-            <div className={`transition-all duration-500 delay-200 ${
-              isVisible ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'
-            }`}>
-              <SideNav
-                label="Overview"
-                destination="/dashboard"
-                active={activeLink === "Overview"}
-                isCollapsed={isCollapsed}
-              />
-            </div>
             
+            {/* Overview - Only for non-guest users */}
+            {userRole !== "guest" && (
+              <div className={`transition-all duration-500 delay-200 ${
+                isVisible ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'
+              }`}>
+                <SideNav
+                  label="Overview"
+                  destination="/dashboard"
+                  active={activeLink === "Overview"}
+                  isCollapsed={isCollapsed}
+                />
+              </div>
+            )}
+            
+            {/* Monitor - Available to all users */}
             <div className={`transition-all duration-500 delay-250 ${
               isVisible ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'
             }`}>
@@ -200,15 +205,15 @@ export const Sidebar = () => {
               />
             </div>
             
-            {/* Updated Pools section for guest access */}
-            {(userRole === "admin" || userRole === "guest") && (
+            {/* Pools - Only for admin users (removed for guests) */}
+            {userRole === "admin" && (
               <div className={`transition-all duration-500 delay-300 ${
                 isVisible ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'
               }`}>
                 <SideNav
-                  label={userRole === "guest" ? "View Pools" : "Pools"}
-                  destination={userRole === "guest" ? "/pool" : "/pool/create"}
-                  active={activeLink === "Pools" || activeLink === "View Pools"}
+                  label="Pools"
+                  destination="/pool/create"
+                  active={activeLink === "Pools"}
                   isCollapsed={isCollapsed}
                 />
               </div>
@@ -228,19 +233,17 @@ export const Sidebar = () => {
               </div>
             )}
 
-            {/* Prediction - Available to all roles except guests */}
-            {userRole !== "guest" && (
-              <div className={`transition-all duration-500 delay-500 ${
-                isVisible ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'
-              }`}>
-                <SideNav
-                  label="Prediction"
-                  destination="/predict"
-                  active={activeLink === "Prediction"}
-                  isCollapsed={isCollapsed}
-                />
-              </div>
-            )}
+            {/* Prediction - Available to all roles */}
+            <div className={`transition-all duration-500 delay-500 ${
+              isVisible ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'
+            }`}>
+              <SideNav
+                label="Prediction"
+                destination="/predict"
+                active={activeLink === "Prediction"}
+                isCollapsed={isCollapsed}
+              />
+            </div>
 
             {/* History - Available to all roles */}
             <div className={`transition-all duration-500 delay-600 ${
@@ -297,7 +300,7 @@ export const Sidebar = () => {
                 <div className="flex items-center space-x-2">
                   <FiEye className="text-gray-400" size={12} />
                   <p className="text-xs text-gray-300 font-medium">
-                    Guest • Read-only
+                    Guest • Monitor, Predict & History
                   </p>
                 </div>
               </div>

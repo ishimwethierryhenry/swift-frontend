@@ -11,6 +11,8 @@ import { getLocations } from "../redux/slices/locationsSlice";
 import { deletePool, resetDeletePoolState } from "../redux/slices/deletePoolSlice";
 import { deleteOperator, resetDeleteOperatorState } from "../redux/slices/deleteOperatorSlice";
 import MQTTlive from "../service/MQTTlive";
+import waterQualityService from '../services/waterQualityService';
+
 
 export const Dashboard = () => {
   const userState = useSelector((state) => state.user.user);
@@ -152,190 +154,186 @@ export const Dashboard = () => {
   };
 
   // NEW: Handle TEST button functionality
-  const handleTestPool = async (pool) => {
-    const poolName = pool.name;
-    console.log(`🧪 Starting TEST for pool: ${poolName}`);
+  // NEW: Handle TEST button functionality - UPDATED VERSION
+const handleTestPool = async (pool) => {
+  const poolName = pool.name;
+  console.log(`🧪 Starting TEST for pool: ${poolName}`);
+  
+  // Set testing state
+  setTestingPools(prev => ({
+    ...prev,
+    [poolName]: {
+      testing: true,
+      startTime: new Date(),
+      status: 'Recording data...'
+    }
+  }));
+
+  try {
+    // 1. Trigger device recording for this specific pool using API service
+    const recordingData = await waterQualityService.startRecording({
+      poolId: pool.id || pool._id,
+      poolName: poolName,
+      userId: userId,
+      userRole: userRole,
+      testInitiated: true,
+      timestamp: new Date().toISOString()
+    });
+
+    console.log('📊 Recording started:', recordingData);
+
+    // 2. Set up specific MQTT connection for this test
+    const poolTopicMap = {
+      'pool01': 'device_serena_pool01',
+      'pool02': 'device_serena_pool02', 
+      'pool702897': 'device_serena_pool702897',
+    };
+
+    const mqttTopic = poolTopicMap[poolName] || `device_serena_${poolName}`;
     
-    // Set testing state
+    // Create a test-specific MQTT client
+    const testClient = MQTTlive(mqttTopic, (topic, message) => {
+      console.log(`🧪 TEST data received for ${poolName}:`, message);
+      
+      // Process and assign data to this specific pool
+      handleTestDataReceived(pool, message);
+    });
+
+    // Update testing status
     setTestingPools(prev => ({
       ...prev,
       [poolName]: {
-        testing: true,
-        startTime: new Date(),
-        status: 'Recording data...'
+        ...prev[poolName],
+        status: 'Waiting for data...',
+        client: testClient
       }
     }));
 
-    try {
-      // 1. Trigger device recording for this specific pool
-      const recordingResponse = await fetch('/api/device/start-recording', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          poolId: pool.id || pool._id,
-          poolName: poolName,
-          userId: userId,
-          userRole: userRole,
-          testInitiated: true,
-          timestamp: new Date().toISOString()
-        })
-      });
+    // 3. Set timeout for test completion (e.g., 30 seconds)
+    setTimeout(() => {
+      completeTest(pool);
+    }, 30000); // 30 seconds test duration
 
-      if (!recordingResponse.ok) {
-        throw new Error('Failed to start device recording');
+  } catch (error) {
+    console.error(`❌ TEST failed for ${poolName}:`, error);
+    
+    // Update testing state with error
+    setTestingPools(prev => ({
+      ...prev,
+      [poolName]: {
+        testing: false,
+        status: 'Test failed',
+        error: error.message
       }
+    }));
 
-      const recordingData = await recordingResponse.json();
-      console.log('📊 Recording started:', recordingData);
-
-      // 2. Set up specific MQTT connection for this test
-      const poolTopicMap = {
-        'pool01': 'device_serena_pool01',
-        'pool02': 'device_serena_pool02', 
-        'pool702897': 'device_serena_pool702897',
-      };
-
-      const mqttTopic = poolTopicMap[poolName] || `device_serena_${poolName}`;
-      
-      // Create a test-specific MQTT client
-      const testClient = MQTTlive(mqttTopic, (topic, message) => {
-        console.log(`🧪 TEST data received for ${poolName}:`, message);
-        
-        // Process and assign data to this specific pool
-        handleTestDataReceived(pool, message);
-      });
-
-      // Update testing status
-      setTestingPools(prev => ({
-        ...prev,
-        [poolName]: {
-          ...prev[poolName],
-          status: 'Waiting for data...',
-          client: testClient
-        }
-      }));
-
-      // 3. Set timeout for test completion (e.g., 30 seconds)
-      setTimeout(() => {
-        completeTest(pool);
-      }, 30000); // 30 seconds test duration
-
-    } catch (error) {
-      console.error(`❌ TEST failed for ${poolName}:`, error);
-      
-      // Update testing state with error
-      setTestingPools(prev => ({
-        ...prev,
-        [poolName]: {
-          testing: false,
-          status: 'Test failed',
-          error: error.message
-        }
-      }));
-
-      // Show error notification
-      alert(`Test failed for ${poolName}: ${error.message}`);
-    }
-  };
+    // Show error notification
+    alert(`Test failed for ${poolName}: ${error.message}`);
+  }
+};
 
   // Handle data received during test
-  const handleTestDataReceived = async (pool, data) => {
-    const poolName = pool.name;
-    console.log(`📝 Processing test data for ${poolName}:`, data);
+  // Handle data received during test - UPDATED VERSION
+const handleTestDataReceived = async (pool, data) => {
+  const poolName = pool.name;
+  console.log(`📝 Processing test data for ${poolName}:`, data);
 
-    try {
-      // Save data with pool assignment
-      const saveResponse = await fetch('/api/pool-data/save-test-data', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          poolId: pool.id || pool._id,
-          poolName: poolName,
-          data: data,
-          testMode: true,
-          userId: userId,
-          timestamp: new Date().toISOString()
-        })
-      });
+  try {
+    // Save data with pool assignment using API service
+    const savedData = await waterQualityService.saveTestData({
+      poolId: pool.id || pool._id,
+      poolName: poolName,
+      data: data,
+      testMode: true,
+      userId: userId,
+      timestamp: new Date().toISOString()
+    });
 
-      if (saveResponse.ok) {
-        const savedData = await saveResponse.json();
-        console.log(`✅ Test data saved for ${poolName}:`, savedData);
-        
-        // Update testing status
-        setTestingPools(prev => ({
-          ...prev,
-          [poolName]: {
-            ...prev[poolName],
-            status: 'Data recorded successfully!',
-            dataReceived: true,
-            lastDataTime: new Date().toLocaleTimeString()
-          }
-        }));
+    console.log(`✅ Test data saved for ${poolName}:`, savedData);
+    
+    // Update testing status
+    setTestingPools(prev => ({
+      ...prev,
+      [poolName]: {
+        ...prev[poolName],
+        status: 'Data recorded successfully!',
+        dataReceived: true,
+        lastDataTime: new Date().toLocaleTimeString()
       }
-    } catch (error) {
-      console.error(`❌ Failed to save test data for ${poolName}:`, error);
-    }
-  };
+    }));
 
-  // Complete the test
-  const completeTest = async (pool) => {
-    const poolName = pool.name;
-    console.log(`🏁 Completing TEST for pool: ${poolName}`);
-
-    try {
-      // Stop device recording
-      await fetch('/api/device/stop-recording', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          poolId: pool.id || pool._id,
-          poolName: poolName,
-          userId: userId
-        })
-      });
-
-      // Disconnect test-specific MQTT client
-      const testInfo = testingPools[poolName];
-      if (testInfo?.client && testInfo.client.disconnect) {
-        testInfo.client.disconnect();
+  } catch (error) {
+    console.error(`❌ Failed to save test data for ${poolName}:`, error);
+    
+    // Update testing status with error
+    setTestingPools(prev => ({
+      ...prev,
+      [poolName]: {
+        ...prev[poolName],
+        status: 'Failed to save data',
+        error: error.message
       }
+    }));
+  }
+};
 
-      // Update testing state
-      setTestingPools(prev => ({
-        ...prev,
-        [poolName]: {
-          testing: false,
-          status: prev[poolName]?.dataReceived ? 'Test completed successfully!' : 'Test completed - no data received',
-          completed: true,
-          endTime: new Date()
-        }
-      }));
+// Complete the test - UPDATED VERSION
+const completeTest = async (pool) => {
+  const poolName = pool.name;
+  console.log(`🏁 Completing TEST for pool: ${poolName}`);
 
-      // Clear the testing status after 5 seconds
-      setTimeout(() => {
-        setTestingPools(prev => {
-          const newState = { ...prev };
-          delete newState[poolName];
-          return newState;
-        });
-      }, 5000);
+  try {
+    // Stop device recording using API service
+    await waterQualityService.stopRecording({
+      poolId: pool.id || pool._id,
+      poolName: poolName,
+      userId: userId
+    });
 
-      console.log(`✅ TEST completed for ${poolName}`);
-
-    } catch (error) {
-      console.error(`❌ Error completing test for ${poolName}:`, error);
+    // Disconnect test-specific MQTT client
+    const testInfo = testingPools[poolName];
+    if (testInfo?.client && testInfo.client.disconnect) {
+      testInfo.client.disconnect();
     }
-  };
+
+    // Update testing state
+    setTestingPools(prev => ({
+      ...prev,
+      [poolName]: {
+        testing: false,
+        status: prev[poolName]?.dataReceived ? 'Test completed successfully!' : 'Test completed - no data received',
+        completed: true,
+        endTime: new Date()
+      }
+    }));
+
+    // Clear the testing status after 5 seconds
+    setTimeout(() => {
+      setTestingPools(prev => {
+        const newState = { ...prev };
+        delete newState[poolName];
+        return newState;
+      });
+    }, 5000);
+
+    console.log(`✅ TEST completed for ${poolName}`);
+
+  } catch (error) {
+    console.error(`❌ Error completing test for ${poolName}:`, error);
+    
+    // Update testing state with error
+    setTestingPools(prev => ({
+      ...prev,
+      [poolName]: {
+        testing: false,
+        status: 'Error completing test',
+        error: error.message,
+        completed: true,
+        endTime: new Date()
+      }
+    }));
+  }
+};  
 
   // Initialize MQTT connections for all pools
   useEffect(() => {
