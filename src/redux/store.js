@@ -11,9 +11,10 @@ import guestsByLocationSlice from "./slices/guestsByLocationSlice";
 import poolAddSlice from "./slices/poolAddSlice";
 import operatorAddSlice from "./slices/operatorAddSlice";
 import poolUpdateSlice from "./slices/poolUpdateSlice";
+import updatePoolSlice from "./slices/updatePoolSlice"; // ✅ ADD THIS LINE
 import deletePoolSlice from "./slices/deletePoolSlice";
 import deleteOperatorSlice from "./slices/deleteOperatorSlice";
-import updateOperatorSlice from "./slices/updateOperatorSlice"; // ✅ ADD THIS LINE
+import updateOperatorSlice from "./slices/updateOperatorSlice";
 import predictionSlice from "./slices/predictionSlice";
 import forecastSlice from "./slices/forecastSlice";
 
@@ -30,9 +31,10 @@ const store = configureStore({
     poolAdd: poolAddSlice,
     operatorAdd: operatorAddSlice,
     poolUpdate: poolUpdateSlice,
+    updatePool: updatePoolSlice, // ✅ ADD THIS LINE
     deletePool: deletePoolSlice,
     deleteOperator: deleteOperatorSlice,
-    updateOperator: updateOperatorSlice, // ✅ ADD THIS LINE
+    updateOperator: updateOperatorSlice,
     prediction: predictionSlice,
     forecast: forecastSlice,
   },

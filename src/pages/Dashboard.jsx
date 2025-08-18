@@ -13,6 +13,8 @@ import { deleteOperator, resetDeleteOperatorState } from "../redux/slices/delete
 import MQTTlive from "../service/MQTTlive";
 import waterQualityService from '../services/waterQualityService';
 import { ModalOperator } from "../components/ModalOperator"; // Add this line 
+import { resetUpdatePoolState } from "../redux/slices/updatePoolSlice";
+
 
 
 
@@ -46,6 +48,14 @@ export const Dashboard = () => {
   const userId = localStorage.getItem("user_id");
   const userRole = localStorage.getItem("user_role");
   const userLocation = localStorage.getItem("user_location");
+  // Add this selector after your existing selectors
+  const updatePoolState = useSelector((state) => state.updatePool || {
+    response: null,
+    loading: false,
+    error: null,
+    serverResponded: false,
+  });
+
 
   // MQTT Connection Status Management
   const [poolConnectionStatus, setPoolConnectionStatus] = useState({});
@@ -518,6 +528,23 @@ const completeTest = async (pool) => {
       dispatch(resetDeleteOperatorState());
     }
   }, [deleteOperatorState?.serverResponded, deleteOperatorState?.response, userRole, userLocation, dispatch]);
+
+  // Add this useEffect for pool update success (put it with your other useEffects)
+  useEffect(() => {
+    if (updatePoolState?.serverResponded && updatePoolState?.response) {
+      console.log('✅ Pool update successful, refreshing pools list...');
+      
+      // Refresh the appropriate pools list based on user role
+      if (userRole === "operator" && userId) {
+        dispatch(poolsAssigned(userId));
+      } else if (userRole === "admin" && userLocation) {
+        dispatch(poolsAvailable(userLocation));
+      }
+      
+      // Reset the update state
+      dispatch(resetUpdatePoolState());
+    }
+  }, [updatePoolState?.serverResponded, updatePoolState?.response, userRole, userId, userLocation, dispatch]);
 
   // Handle delete pool success - refresh the pools list
   useEffect(() => {

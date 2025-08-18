@@ -1,4 +1,4 @@
-// src/redux/slices/updatePoolSlice.js - Enhanced Version
+// src/redux/slices/updatePoolSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { toast } from "react-toastify";
