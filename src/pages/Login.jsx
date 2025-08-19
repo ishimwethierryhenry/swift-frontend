@@ -1,5 +1,6 @@
-// 5. UPDATED Login.jsx
+// src/pages/Login.jsx - UPDATED VERSION WITH SIGNUP BUTTON
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom"; // ✅ ADD THIS IMPORT
 import banner_IMG from "../assets/banner.jpeg";
 import logo2 from "../assets/logo2.png";
 import { useDispatch, useSelector } from "react-redux";
@@ -208,10 +209,20 @@ export default function Login() {
             </div>
 
             {/* Additional Links */}
-            <div className="mt-6 text-center">
-              <a href="/" className="text-cyan-400 hover:text-cyan-300 text-sm transition-colors duration-300">
+            <div className="mt-6 text-center space-y-2">
+              {/* ✅ ADD SIGNUP LINK */}
+              <Link 
+                to="/signup" 
+                className="text-cyan-400 hover:text-cyan-300 text-sm transition-colors duration-300 block"
+              >
+                Don't have an account? Sign Up
+              </Link>
+              <Link 
+                to="/" 
+                className="text-cyan-400 hover:text-cyan-300 text-sm transition-colors duration-300 block"
+              >
                 Return to the Landing Page
-              </a>
+              </Link>
             </div>
           </form>
         </div>

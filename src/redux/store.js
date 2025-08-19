@@ -1,6 +1,7 @@
-// src/redux/store.js - UPDATED VERSION WITH FEEDBACK SLICE
+// src/redux/store.js - UPDATED VERSION WITH SIGNUP SLICE
 import { configureStore } from "@reduxjs/toolkit";
 import loginSlice from "./slices/loginSlice";
+import signupSlice from "./slices/signupSlice"; // ✅ ADD THIS IMPORT
 import userSlice from "./slices/userSlice";
 import activeLinkSlice from "./slices/activeLinkSlice";
 import locationsSlice from "./slices/locationsSlice";
@@ -17,11 +18,12 @@ import deleteOperatorSlice from "./slices/deleteOperatorSlice";
 import updateOperatorSlice from "./slices/updateOperatorSlice";
 import predictionSlice from "./slices/predictionSlice";
 import forecastSlice from "./slices/forecastSlice";
-import feedbackSlice from "./slices/feedbackSlice"; // ✅ ADD THIS IMPORT
+import feedbackSlice from "./slices/feedbackSlice";
 
 const store = configureStore({
   reducer: {
     login: loginSlice,
+    signup: signupSlice, // ✅ ADD THIS LINE
     user: userSlice,
     activeLinks: activeLinkSlice,
     locations: locationsSlice,
@@ -38,7 +40,7 @@ const store = configureStore({
     updateOperator: updateOperatorSlice,
     prediction: predictionSlice,
     forecast: forecastSlice,
-    feedback: feedbackSlice, // ✅ ADD THIS LINE
+    feedback: feedbackSlice,
   },
 });
 

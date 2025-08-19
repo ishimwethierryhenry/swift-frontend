@@ -1,3 +1,4 @@
+// src/pages/LandingPage.jsx - UPDATED VERSION WITH SIGNUP BUTTON
 import { useState, useEffect } from "react";
 import logo2 from "../assets/logo2.png"; // Import your custom logo
 
@@ -11,6 +12,11 @@ export const LandingPage = () => {
   const handleLoginClick = () => {
     // Navigate to login - you can replace this with your routing logic
     window.location.href = '/login';
+  };
+
+  // ✅ ADD SIGNUP HANDLER
+  const handleSignupClick = () => {
+    window.location.href = '/signup';
   };
 
   return (
@@ -57,12 +63,20 @@ export const LandingPage = () => {
             SWIFT
           </label>
         </div>
-        <div>
+        
+        {/* ✅ UPDATE HEADER BUTTONS TO INCLUDE SIGNUP */}
+        <div className="flex space-x-2 sm:space-x-4">
           <button
             onClick={handleLoginClick}
-            className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-cyan-500/25"
+            className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold px-3 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-cyan-500/25"
           >
             Login
+          </button>
+          <button
+            onClick={handleSignupClick}
+            className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold px-3 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-emerald-500/25"
+          >
+            Sign Up
           </button>
         </div>
       </div>
@@ -95,15 +109,24 @@ export const LandingPage = () => {
             </p>
           </div>
           
-          {/* CTA Button */}
+          {/* ✅ UPDATE CTA BUTTONS TO INCLUDE BOTH OPTIONS */}
           <div className={`transition-all duration-1000 delay-1200 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-            <button
-              onClick={handleLoginClick}
-              className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white text-lg sm:text-xl lg:text-2xl font-semibold px-8 sm:px-10 py-3 sm:py-4 rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-cyan-500/50 group relative overflow-hidden"
-            >
-              <span className="relative z-10">Get Started</span>
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </button>
+            <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+              <button
+                onClick={handleSignupClick}
+                className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white text-lg sm:text-xl lg:text-2xl font-semibold px-8 sm:px-10 py-3 sm:py-4 rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-emerald-500/50 group relative overflow-hidden"
+              >
+                <span className="relative z-10">Get Started</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-teal-600 to-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              </button>
+              
+              <button
+                onClick={handleLoginClick}
+                className="w-full sm:w-auto bg-transparent border-2 border-cyan-500 hover:bg-cyan-500 text-cyan-500 hover:text-white text-lg sm:text-xl lg:text-2xl font-semibold px-8 sm:px-10 py-3 sm:py-4 rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-2xl"
+              >
+                Sign In
+              </button>
+            </div>
           </div>
         </div>
 

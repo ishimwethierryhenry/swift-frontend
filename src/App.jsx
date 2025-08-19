@@ -1,8 +1,9 @@
-// src/App.jsx - REVERT TO ORIGINAL
+// src/App.jsx - UPDATED VERSION WITH SIGNUP ROUTE
 import React from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import DefaultLayout from "./layouts/DefaultLayout";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup"; // ✅ ADD THIS IMPORT
 import Pool from "./pages/Pool";
 import { Dashboard } from "./pages/Dashboard";
 import { GuestDashboard } from "./pages/GuestDashboard";
@@ -24,6 +25,11 @@ const routes = [
     path: "/",
     element: <DefaultLayout />,
     children: [{ path: "/login", element: <Login /> }],
+  },
+  {
+    path: "/",
+    element: <DefaultLayout />,
+    children: [{ path: "/signup", element: <Signup /> }], // ✅ ADD THIS ROUTE
   },
   {
     path: "/",
