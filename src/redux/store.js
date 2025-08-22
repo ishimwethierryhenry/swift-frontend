@@ -1,7 +1,8 @@
-// src/redux/store.js - UPDATED VERSION WITH SIGNUP SLICE
+// src/redux/store.js - UPDATED VERSION WITH PASSWORD SLICE
 import { configureStore } from "@reduxjs/toolkit";
 import loginSlice from "./slices/loginSlice";
-import signupSlice from "./slices/signupSlice"; // ✅ ADD THIS IMPORT
+import signupSlice from "./slices/signupSlice";
+import passwordSlice from "./slices/passwordSlice"; // ✅ ADD THIS IMPORT
 import userSlice from "./slices/userSlice";
 import activeLinkSlice from "./slices/activeLinkSlice";
 import locationsSlice from "./slices/locationsSlice";
@@ -23,7 +24,8 @@ import feedbackSlice from "./slices/feedbackSlice";
 const store = configureStore({
   reducer: {
     login: loginSlice,
-    signup: signupSlice, // ✅ ADD THIS LINE
+    signup: signupSlice,
+    password: passwordSlice, // ✅ ADD THIS LINE
     user: userSlice,
     activeLinks: activeLinkSlice,
     locations: locationsSlice,

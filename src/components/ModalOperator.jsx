@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateOperator, resetUpdateOperatorState } from '../redux/slices/updateOperatorSlice';
 import { operatorsAvailable } from '../redux/slices/operatorsByLocationSlice';
+import { User, X, Loader2, Save, Mail, Phone, MapPin, Shield } from 'lucide-react';
 
 export const ModalOperator = ({ data, Fn, mode = 'edit' }) => {
   const dispatch = useDispatch();
@@ -21,7 +22,7 @@ export const ModalOperator = ({ data, Fn, mode = 'edit' }) => {
     email: data?.email || '',
     phone: data?.phone || '',
     location: data?.location || '',
-    role: data?.role || 'operator', // ✅ ADD ROLE FIELD
+    role: data?.role || 'operator',
   });
 
   const [errors, setErrors] = useState({});
@@ -89,7 +90,7 @@ export const ModalOperator = ({ data, Fn, mode = 'edit' }) => {
       // Ensure role is lowercase to match backend expectations
       const submitData = {
         ...formData,
-        role: formData.role.toLowerCase() // ✅ Convert to lowercase
+        role: formData.role.toLowerCase()
       };
       
       // Dispatch update action with operator ID and form data
@@ -129,223 +130,351 @@ export const ModalOperator = ({ data, Fn, mode = 'edit' }) => {
     }
   }, [updateOperatorState?.serverResponded, updateOperatorState?.response]);
 
+  // Prevent modal from closing when clicking inside the modal content
+  const handleModalClick = (e) => {
+    e.stopPropagation();
+  };
+
   const isViewMode = mode === 'view';
   const isEditMode = mode === 'edit';
 
   return (
-    <div className="fixed z-50 inset-0 flex items-center justify-center overflow-hidden">
-      <div className="fixed inset-0 transition-opacity" onClick={handleClose}>
-        <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-      </div>
+    <div className="relative">
+      {/* Backdrop with outside click functionality */}
+      <div 
+        className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden backdrop-blur-sm"
+        onClick={handleClose}
+      >
+        {/* Enhanced glassmorphism backdrop */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/40 via-cyan-900/30 to-gray-900/40 backdrop-blur-md"></div>
 
-      <div className="bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:max-w-lg sm:w-full mx-4">
-        <form onSubmit={handleSubmit}>
-          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-              {isViewMode ? 'View Operator Details' : 'Edit Operator'}
-            </h3>
-            
-            <div className="space-y-4">
-              {/* First Name */}
-              <div>
-                <label htmlFor="fname" className="block text-sm font-medium text-gray-700">
-                  First Name
-                </label>
-                <input
-                  type="text"
-                  id="fname"
-                  name="fname"
-                  value={formData.fname}
-                  onChange={handleInputChange}
-                  disabled={isViewMode}
-                  className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                    errors.fname ? 'border-red-300' : 'border-gray-300'
-                  } ${isViewMode ? 'bg-gray-50 cursor-not-allowed' : 'bg-white'}`}
-                />
-                {errors.fname && (
-                  <p className="mt-1 text-sm text-red-600">{errors.fname}</p>
+        {/* Enhanced Glassmorphism Container */}
+        <div 
+          className="relative bg-gradient-to-br from-slate-800/60 via-cyan-900/60 to-blue-800/60 backdrop-blur-2xl rounded-2xl border border-cyan-400/30 shadow-2xl max-w-lg mx-4 w-full overflow-hidden transform transition-all duration-300 scale-100 hover:scale-102"
+          onClick={handleModalClick}
+        >
+          
+          {/* Animated border effect */}
+          <div className="absolute inset-0 rounded-2xl border-2 border-transparent bg-gradient-to-br from-cyan-400/30 via-blue-400/20 to-teal-400/30 p-px animate-pulse">
+            <div className="h-full w-full rounded-2xl bg-gradient-to-br from-slate-800/80 via-cyan-900/80 to-blue-800/80 backdrop-blur-2xl"></div>
+          </div>
+
+          {/* Content */}
+          <div className="relative z-10">
+            <form onSubmit={handleSubmit}>
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-cyan-500/20 rounded-lg">
+                    <User className="h-6 w-6 text-cyan-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white">
+                    {isViewMode ? 'View Operator Details' : 'Edit Operator'}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="text-gray-400 hover:text-white transition-colors duration-200 p-2 hover:bg-white/10 rounded-lg"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Form Body */}
+              <div className="px-6 pb-6 max-h-96 overflow-y-auto">
+                <div className="space-y-4">
+                  {/* Name Fields */}
+                  <div>
+                    <label className="block text-sm font-medium text-cyan-300 mb-3">
+                      Full Name
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label htmlFor="fname" className="block text-xs text-gray-300 mb-1">First Name</label>
+                        <input
+                          type="text"
+                          id="fname"
+                          name="fname"
+                          value={formData.fname}
+                          onChange={handleInputChange}
+                          disabled={isViewMode}
+                          className={`w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:border-cyan-400/50 focus:bg-white/15 transition-all duration-200 backdrop-blur-sm ${
+                            errors.fname ? 'border-red-400/50' : ''
+                          } ${isViewMode ? 'cursor-not-allowed opacity-60' : ''}`}
+                          placeholder="First name"
+                        />
+                        {errors.fname && (
+                          <p className="mt-1 text-xs text-red-300">{errors.fname}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label htmlFor="lname" className="block text-xs text-gray-300 mb-1">Last Name</label>
+                        <input
+                          type="text"
+                          id="lname"
+                          name="lname"
+                          value={formData.lname}
+                          onChange={handleInputChange}
+                          disabled={isViewMode}
+                          className={`w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:border-cyan-400/50 focus:bg-white/15 transition-all duration-200 backdrop-blur-sm ${
+                            errors.lname ? 'border-red-400/50' : ''
+                          } ${isViewMode ? 'cursor-not-allowed opacity-60' : ''}`}
+                          placeholder="Last name"
+                        />
+                        {errors.lname && (
+                          <p className="mt-1 text-xs text-red-300">{errors.lname}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-cyan-300 mb-2">
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4" />
+                        Email Address
+                      </div>
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      disabled={isViewMode}
+                      className={`w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:border-cyan-400/50 focus:bg-white/15 transition-all duration-200 backdrop-blur-sm ${
+                        errors.email ? 'border-red-400/50' : ''
+                      } ${isViewMode ? 'cursor-not-allowed opacity-60' : ''}`}
+                      placeholder="Enter email address"
+                    />
+                    {errors.email && (
+                      <p className="mt-1 text-sm text-red-300">{errors.email}</p>
+                    )}
+                  </div>
+
+                  {/* Phone */}
+                  <div>
+                    <label htmlFor="phone" className="block text-sm font-medium text-cyan-300 mb-2">
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4" />
+                        Phone Number
+                      </div>
+                    </label>
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      disabled={isViewMode}
+                      className={`w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:border-cyan-400/50 focus:bg-white/15 transition-all duration-200 backdrop-blur-sm ${
+                        errors.phone ? 'border-red-400/50' : ''
+                      } ${isViewMode ? 'cursor-not-allowed opacity-60' : ''}`}
+                      placeholder="Enter phone number"
+                    />
+                    {errors.phone && (
+                      <p className="mt-1 text-sm text-red-300">{errors.phone}</p>
+                    )}
+                  </div>
+
+                  {/* Location */}
+                  <div>
+                    <label htmlFor="location" className="block text-sm font-medium text-cyan-300 mb-2">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        Location
+                      </div>
+                    </label>
+                    <input
+                      type="text"
+                      id="location"
+                      name="location"
+                      value={formData.location}
+                      onChange={handleInputChange}
+                      disabled={isViewMode}
+                      className={`w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:border-cyan-400/50 focus:bg-white/15 transition-all duration-200 backdrop-blur-sm ${
+                        errors.location ? 'border-red-400/50' : ''
+                      } ${isViewMode ? 'cursor-not-allowed opacity-60' : ''}`}
+                      placeholder="Enter location"
+                    />
+                    {errors.location && (
+                      <p className="mt-1 text-sm text-red-300">{errors.location}</p>
+                    )}
+                  </div>
+
+                  {/* Role */}
+                  <div>
+                    <label htmlFor="role" className="block text-sm font-medium text-cyan-300 mb-2">
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        Role
+                      </div>
+                    </label>
+                    {isViewMode ? (
+                      <input
+                        type="text"
+                        value={formData.role}
+                        disabled
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white cursor-not-allowed opacity-60 backdrop-blur-sm"
+                      />
+                    ) : (
+                      <select
+                        id="role"
+                        name="role"
+                        value={formData.role}
+                        onChange={handleInputChange}
+                        className={`w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-cyan-400/50 focus:bg-white/15 transition-all duration-200 backdrop-blur-sm ${
+                          errors.role ? 'border-red-400/50' : ''
+                        }`}
+                      >
+                        <option value="" className="bg-slate-800 text-white">Select a role</option>
+                        <option value="admin" className="bg-slate-800 text-white">Admin</option>
+                        <option value="operator" className="bg-slate-800 text-white">Operator</option>
+                        <option value="overseer" className="bg-slate-800 text-white">Overseer</option>
+                        <option value="guest" className="bg-slate-800 text-white">Guest</option>
+                      </select>
+                    )}
+                    {errors.role && (
+                      <p className="mt-1 text-sm text-red-300">{errors.role}</p>
+                    )}
+                  </div>
+
+                  {/* Show ID in view mode */}
+                  {isViewMode && (
+                    <div>
+                      <label className="block text-sm font-medium text-cyan-300 mb-2">
+                        Operator ID
+                      </label>
+                      <input
+                        type="text"
+                        value={data?.id || data?._id || 'N/A'}
+                        disabled
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white cursor-not-allowed opacity-60 backdrop-blur-sm"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Error message */}
+                {updateOperatorState?.error && (
+                  <div className="mt-4 p-3 bg-red-500/20 border border-red-400/30 rounded-lg backdrop-blur-sm">
+                    <p className="text-sm text-red-300">
+                      Error: {updateOperatorState.error}
+                    </p>
+                  </div>
+                )}
+
+                {/* Success message */}
+                {updateOperatorState?.serverResponded && updateOperatorState?.response && (
+                  <div className="mt-4 p-3 bg-green-500/20 border border-green-400/30 rounded-lg backdrop-blur-sm">
+                    <p className="text-sm text-green-300">
+                      Operator updated successfully!
+                    </p>
+                  </div>
                 )}
               </div>
 
-              {/* Last Name */}
-              <div>
-                <label htmlFor="lname" className="block text-sm font-medium text-gray-700">
-                  Last Name
-                </label>
-                <input
-                  type="text"
-                  id="lname"
-                  name="lname"
-                  value={formData.lname}
-                  onChange={handleInputChange}
-                  disabled={isViewMode}
-                  className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                    errors.lname ? 'border-red-300' : 'border-gray-300'
-                  } ${isViewMode ? 'bg-gray-50 cursor-not-allowed' : 'bg-white'}`}
-                />
-                {errors.lname && (
-                  <p className="mt-1 text-sm text-red-600">{errors.lname}</p>
-                )}
-              </div>
-
-              {/* Email */}
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  disabled={isViewMode}
-                  className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                    errors.email ? 'border-red-300' : 'border-gray-300'
-                  } ${isViewMode ? 'bg-gray-50 cursor-not-allowed' : 'bg-white'}`}
-                />
-                {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-                )}
-              </div>
-
-              {/* Phone */}
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  disabled={isViewMode}
-                  className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                    errors.phone ? 'border-red-300' : 'border-gray-300'
-                  } ${isViewMode ? 'bg-gray-50 cursor-not-allowed' : 'bg-white'}`}
-                />
-                {errors.phone && (
-                  <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
-                )}
-              </div>
-
-              {/* Location */}
-              <div>
-                <label htmlFor="location" className="block text-sm font-medium text-gray-700">
-                  Location
-                </label>
-                <input
-                  type="text"
-                  id="location"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleInputChange}
-                  disabled={isViewMode}
-                  className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                    errors.location ? 'border-red-300' : 'border-gray-300'
-                  } ${isViewMode ? 'bg-gray-50 cursor-not-allowed' : 'bg-white'}`}
-                />
-                {errors.location && (
-                  <p className="mt-1 text-sm text-red-600">{errors.location}</p>
-                )}
-              </div>
-
-              {/* Role */}
-              <div>
-                <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-                  Role
-                </label>
-                {isViewMode ? (
-                  <input
-                    type="text"
-                    value={formData.role}
-                    disabled
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 cursor-not-allowed sm:text-sm"
-                  />
-                ) : (
-                  <select
-                    id="role"
-                    name="role"
-                    value={formData.role}
-                    onChange={handleInputChange}
-                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                      errors.role ? 'border-red-300' : 'border-gray-300'
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 p-6 pt-0">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="w-full sm:flex-1 px-6 py-3 bg-white/10 border border-white/20 text-white rounded-lg hover:bg-white/15 transition-all duration-200 font-medium backdrop-blur-sm"
+                >
+                  {isViewMode ? 'Close' : 'Cancel'}
+                </button>
+                
+                {isEditMode && (
+                  <button
+                    type="submit"
+                    disabled={updateOperatorState?.loading}
+                    className={`w-full sm:flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg transform hover:scale-105 disabled:hover:scale-100 ${
+                      updateOperatorState?.loading
+                        ? 'bg-cyan-500/50 border border-cyan-400/30 text-cyan-200 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-cyan-500 to-blue-500 border border-cyan-400/50 text-white hover:from-cyan-600 hover:to-blue-600'
                     }`}
                   >
-                    <option value="">Select a role</option>
-                    <option value="admin">Admin</option>
-                    <option value="operator">Operator</option>
-                    <option value="overseer">Overseer</option>
-                    <option value="guest">Guest</option>
-                  </select>
+                    {updateOperatorState?.loading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Updating...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4" />
+                        Update Operator
+                      </>
+                    )}
+                  </button>
                 )}
-                {errors.role && (
-                  <p className="mt-1 text-sm text-red-600">{errors.role}</p>
-                )}
               </div>
-
-              {/* Show ID in view mode */}
-              {isViewMode && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Operator ID
-                  </label>
-                  <input
-                    type="text"
-                    value={data?.id || data?._id || 'N/A'}
-                    disabled
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 cursor-not-allowed sm:text-sm"
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Error message */}
-            {updateOperatorState?.error && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-sm text-red-600">
-                  Error: {updateOperatorState.error}
-                </p>
-              </div>
-            )}
-
-            {/* Success message */}
-            {updateOperatorState?.serverResponded && updateOperatorState?.response && (
-              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
-                <p className="text-sm text-green-600">
-                  Operator updated successfully!
-                </p>
-              </div>
-            )}
+            </form>
           </div>
-
-          <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-            {/* Show different buttons based on mode */}
-            {isEditMode && (
-              <button
-                type="submit"
-                disabled={updateOperatorState?.loading}
-                className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm ${
-                  updateOperatorState?.loading
-                    ? 'bg-blue-400 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
-                }`}
-              >
-                {updateOperatorState?.loading ? 'Updating...' : 'Update Operator'}
-              </button>
-            )}
-            
-            <button
-              type="button"
-              onClick={handleClose}
-              className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-            >
-              {isViewMode ? 'Close' : 'Cancel'}
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
+
+      {/* Enhanced Styles */}
+      <style jsx>{`
+        /* Enhanced glassmorphism effects */
+        .backdrop-blur-2xl {
+          backdrop-filter: blur(25px);
+          -webkit-backdrop-filter: blur(25px);
+        }
+        
+        .backdrop-blur-md {
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+        }
+        
+        /* Enhanced focus states */
+        input:focus, textarea:focus, select:focus {
+          box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.3), 0 0 25px rgba(6, 182, 212, 0.1);
+        }
+        
+        button:focus {
+          box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.3), 0 0 25px rgba(6, 182, 212, 0.1);
+          outline: none;
+        }
+        
+        /* Smooth animations */
+        * {
+          transition-property: all;
+          transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Hover scale animations */
+        .hover\\:scale-102:hover {
+          transform: scale(1.02);
+        }
+        
+        /* Custom scrollbar for modal content */
+        .overflow-y-auto::-webkit-scrollbar {
+          width: 4px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 10px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-thumb {
+          background: rgba(6, 182, 212, 0.5);
+          border-radius: 10px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+          background: rgba(6, 182, 212, 0.7);
+        }
+        
+        /* Option styling for selects */
+        option {
+          background-color: rgb(30 41 59);
+          color: white;
+        }
+      `}</style>
     </div>
   );
 };

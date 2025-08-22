@@ -1,137 +1,211 @@
-// Enhanced MQTTlive.js with better debugging and connection handling
+// ARDUINO-COMPATIBLE MQTTlive.js
 import { Client } from "paho-mqtt";
-import { throttle } from "lodash";
-
-// Reduced throttle for better responsiveness - your device publishes every 5 seconds
-const THROTTLE_INTERVAL = 3000; // 3 seconds instead of 15
 
 const MQTTlive = (topic, onMessage) => {
-  console.log(`🚀 Starting MQTT connection for topic: ${topic}`);
+  console.log(`🚀 Connecting to match Arduino device on test.mosquitto.org:1883`);
   
-  // Create a client instance with better client ID
-  const clientId = `poolMonitor-${Math.random().toString(36).substr(2, 9)}-${Date.now()}`;
+  const clientId = `poolDashboard-${Math.random().toString(36).substr(2, 9)}-${Date.now()}`;
   
-  const client = new Client(
-    "test.mosquitto.org",
-    Number(8081),
-    clientId
-  );
-
+  let client;
   let isConnected = false;
   let reconnectAttempts = 0;
-  const maxReconnectAttempts = 5;
+  const maxReconnectAttempts = 8;
+  let reconnectTimer;
+  let currentBrokerIndex = 0;
 
-  // Set callback handlers
-  client.onConnectionLost = (responseObject) => {
-    isConnected = false;
-    if (responseObject.errorCode !== 0) {
-      console.log(`❌ MQTT Connection Lost: ${responseObject.errorMessage}`);
-      console.log(`🔄 Will attempt to reconnect...`);
+  // ARDUINO-COMPATIBLE brokers - matching your device's configuration
+  const brokers = [
+    // Primary: Same as Arduino - test.mosquitto.org via WebSocket bridge
+    // { 
+    //   host: "localhost", 
+    //   port: 8883,         // Changed from 8080 to 8883
+    //   useSSL: false, 
+    //   name: "Local MQTT Broker" 
+    // },
+    // { 
+    //   host: "test.mosquitto.org", 
+    //   port: 8080,                   // WebSocket port that bridges to 1883
+    //   useSSL: false, 
+    //   name: "Mosquitto WS Bridge",
+    //   priority: 1 
+    // },
+    // { 
+    //   host: "test.mosquitto.org", 
+    //   port: 8081, 
+    //   useSSL: true, 
+    //   name: "Mosquitto WSS Bridge",
+    //   priority: 2 
+    // },
+    
+    // // Backup brokers (your device won't be on these, but good for testing)
+    // { 
+    //   host: "broker.hivemq.com", 
+    //   port: 8000, 
+    //   useSSL: false, 
+    //   name: "HiveMQ WS Backup",
+    //   priority: 3 
+    // },
+    { 
+      host: "broker.hivemq.com", 
+      port: 8884, 
+      useSSL: true, 
+      name: "HiveMQ WSS Backup",
+      priority: 4 
     }
-  };
+  ];
 
-  // Enhanced throttled message handler with detailed logging
-  const throttledOnMessage = throttle((destinationName, payloadString) => {
-    console.log(`📨 Processing message from ${destinationName}`);
-    console.log(`📊 Message content: ${payloadString}`);
+  const connectToMQTT = () => {
+    if (reconnectAttempts >= maxReconnectAttempts) {
+      console.error(`❌ All connection attempts failed. Device may be offline.`);
+      return;
+    }
+
+    const broker = brokers[currentBrokerIndex % brokers.length];
+    console.log(`🔌 Attempt ${reconnectAttempts + 1} - ${broker.name} (${broker.host}:${broker.port})`);
     
     try {
-      // Validate JSON before passing to callback
-      const testParse = JSON.parse(payloadString);
-      if (testParse.ph !== undefined || testParse.tds !== undefined || testParse.tbdt !== undefined) {
-        onMessage(destinationName, payloadString);
-        console.log(`✅ Message successfully processed and sent to callback`);
-      } else {
-        console.warn(`⚠️ Message missing expected sensor data fields:`, testParse);
-      }
-    } catch (error) {
-      console.error(`❌ Invalid JSON in MQTT message:`, error);
-      console.error(`Raw message:`, payloadString);
-    }
-  }, THROTTLE_INTERVAL);
+      client = new Client(broker.host, broker.port, clientId);
 
-  client.onMessageArrived = (message) => {
-    console.log(`📡 Raw MQTT message arrived:`);
-    console.log(`  Topic: ${message.destinationName}`);
-    console.log(`  Payload: ${message.payloadString}`);
-    console.log(`  QoS: ${message.qos}`);
-    console.log(`  Retained: ${message.retained}`);
-    
-    // Call the throttled onMessage callback
-    throttledOnMessage(message.destinationName, message.payloadString);
-  };
-
-  // Enhanced connect function
-  const connectToMQTT = () => {
-    console.log(`🔌 Attempting MQTT connection to test.mosquitto.org:8081`);
-    console.log(`🆔 Client ID: ${clientId}`);
-    
-    client.connect({
-      timeout: 30,
-      keepAliveInterval: 60,
-      cleanSession: true,
-      useSSL: true,
-      onSuccess: () => {
-        console.log("✅ Successfully connected to MQTT broker!");
-        isConnected = true;
-        reconnectAttempts = 0;
-        
-        // Subscribe to the sensor topic
-        const fullTopic = `${topic}/sensor`;
-        console.log(`🔔 Subscribing to topic: ${fullTopic}`);
-        
-        client.subscribe(fullTopic, {
-          qos: 0,
-          onSuccess: () => {
-            console.log(`✅ Successfully subscribed to ${fullTopic}`);
-            console.log(`🎯 Waiting for messages from your ESP8266 device...`);
-          },
-          onFailure: (error) => {
-            console.error(`❌ Failed to subscribe to ${fullTopic}:`, error);
-          }
-        });
-      },
-      onFailure: (error) => {
-        console.error(`❌ MQTT Connection failed:`, error);
-        console.error(`Error code: ${error.errorCode}`);
-        console.error(`Error message: ${error.errorMessage}`);
+      // Longer timeout for test.mosquitto.org (it can be slow)
+      client.connectTimeout = 20;
+      
+      client.onConnectionLost = (responseObject) => {
         isConnected = false;
+        console.log(`❌ Lost connection to ${broker.name}: ${responseObject.errorMessage}`);
         
-        // Attempt reconnection
+        currentBrokerIndex++;
+        reconnectAttempts++;
+        
         if (reconnectAttempts < maxReconnectAttempts) {
-          reconnectAttempts++;
-          console.log(`🔄 Reconnection attempt ${reconnectAttempts}/${maxReconnectAttempts} in 5 seconds...`);
-          setTimeout(() => {
-            connectToMQTT();
-          }, 5000);
-        } else {
-          console.error(`❌ Max reconnection attempts reached. Please check your connection.`);
+          const delay = broker.priority === 1 ? 3000 : 1000; // Longer retry for primary
+          console.log(`🔄 Trying next broker in ${delay/1000}s...`);
+          reconnectTimer = setTimeout(() => connectToMQTT(), delay);
         }
+      };
+
+      client.onMessageArrived = (message) => {
+        const timestamp = new Date().toLocaleTimeString();
+        
+        console.log(`📡 *** MQTT MESSAGE RECEIVED ***`);
+        console.log(`⏰ Time: ${timestamp}`);
+        console.log(`🏢 Broker: ${broker.name}`);
+        console.log(`📍 Topic: ${message.destinationName}`);
+        console.log(`📝 Payload: ${message.payloadString}`);
+        
+        // Highlight messages from your Arduino device
+        if (message.destinationName === "device_serena_pool02/sensor") {
+          console.log(`🎯 *** CONFIRMED: MESSAGE FROM YOUR ARDUINO DEVICE! ***`);
+        }
+        
+        try {
+          const data = JSON.parse(message.payloadString);
+          console.log(`📊 Parsed JSON data:`, data);
+          
+          // Check for your Arduino's specific data structure
+          if (data.hasOwnProperty('tds') && data.hasOwnProperty('tbdt') && data.hasOwnProperty('ph')) {
+            console.log(`✅ PERFECT MATCH: Arduino sensor data detected!`);
+            console.log(`   TDS: ${data.tds} ppm`);
+            console.log(`   Turbidity: ${data.tbdt} NTU`);  
+            console.log(`   pH: ${data.ph}`);
+            console.log(`🔥 Calling dashboard callback...`);
+            
+            onMessage(message.destinationName, message.payloadString);
+          } else {
+            console.log(`ℹ️ Message has different structure:`, Object.keys(data));
+          }
+        } catch (error) {
+          console.log(`⚠️ Non-JSON message:`, message.payloadString);
+        }
+      };
+
+      const connectOptions = {
+        timeout: 20,                 // Longer timeout for test.mosquitto.org
+        keepAliveInterval: 60,       // Match Arduino's expectations
+        cleanSession: true,
+        useSSL: broker.useSSL,
+        
+        onSuccess: () => {
+          console.log(`✅ CONNECTED to ${broker.name}!`);
+          console.log(`🎯 This broker should be able to receive data from your Arduino`);
+          isConnected = true;
+          reconnectAttempts = 0;
+          
+          // Subscribe to your Arduino's exact topic
+          const deviceTopic = "device_serena_pool02/sensor";
+          console.log(`🔔 Subscribing to Arduino topic: ${deviceTopic}`);
+          
+          client.subscribe(deviceTopic, {
+            qos: 0, // Match Arduino's QoS
+            onSuccess: () => {
+              console.log(`✅ Subscribed to ${deviceTopic} on ${broker.name}`);
+              console.log(`📡 Listening for your Arduino device...`);
+              console.log(`💡 If Arduino is connected to test.mosquitto.org:1883, you should see data!`);
+            },
+            onFailure: (error) => {
+              console.error(`❌ Subscribe failed:`, error);
+            }
+          });
+        },
+        
+        onFailure: (error) => {
+          console.error(`❌ FAILED to connect to ${broker.name}`);
+          console.error(`   Error: ${error.errorMessage} (Code: ${error.errorCode})`);
+          
+          if (broker.priority === 1) {
+            console.log(`⚠️ Primary broker (matching Arduino) failed!`);
+            console.log(`   This suggests network issues with test.mosquitto.org`);
+          }
+          
+          isConnected = false;
+          currentBrokerIndex++;
+          reconnectAttempts++;
+          
+          if (reconnectAttempts < maxReconnectAttempts) {
+            const delay = 3000;
+            console.log(`🔄 Trying next broker in ${delay/1000}s...`);
+            reconnectTimer = setTimeout(() => connectToMQTT(), delay);
+          }
+        }
+      };
+
+      console.log(`⏱️ Connecting to ${broker.name} (timeout: ${connectOptions.timeout}s)...`);
+      client.connect(connectOptions);
+      
+    } catch (error) {
+      console.error(`❌ Setup error for ${broker.name}:`, error);
+      currentBrokerIndex++;
+      reconnectAttempts++;
+      if (reconnectAttempts < maxReconnectAttempts) {
+        reconnectTimer = setTimeout(() => connectToMQTT(), 2000);
       }
-    });
+    }
   };
 
-  // Start the connection
+  // Start connection
   connectToMQTT();
 
-  // Add utility methods to client
-  client.isConnected = () => isConnected;
-  client.getClientId = () => clientId;
-  client.reconnect = () => {
-    if (!isConnected) {
-      reconnectAttempts = 0;
-      connectToMQTT();
-    }
+  return {
+    disconnect: () => {
+      console.log(`🔌 Disconnecting from MQTT`);
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (client && isConnected) {
+        isConnected = false;
+        client.disconnect();
+      }
+    },
+    
+    isConnected: () => isConnected,
+    getClientId: () => clientId,
+    getCurrentBroker: () => brokers[currentBrokerIndex % brokers.length],
+    
+    // Enhanced status for debugging
+    getStatus: () => ({
+      connected: isConnected,
+      attempts: reconnectAttempts,
+      currentBroker: brokers[currentBrokerIndex % brokers.length],
+      arduinoCompatible: currentBrokerIndex < 2 // First 2 brokers are Arduino-compatible
+    })
   };
-
-  // Enhanced disconnect method
-  const originalDisconnect = client.disconnect.bind(client);
-  client.disconnect = () => {
-    console.log(`🔌 Disconnecting MQTT client ${clientId}`);
-    isConnected = false;
-    originalDisconnect();
-  };
-
 };
 
 export default MQTTlive;

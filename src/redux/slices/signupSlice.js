@@ -8,9 +8,13 @@ export const signup = createAsyncThunk(
   async (userData, { rejectWithValue }) => {
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_APP_API_URL || "http://localhost:3000"}/users/signup`,
+        `${import.meta.env.VITE_APP_API_URL || "https://swift-backend-88o8.onrender.com"}/users/signup`,
         userData
       );
+      // const response = await axios.post(
+      //   `${import.meta.env.VITE_APP_API_URL || "http://localhost:3000"}/users/signup`,
+      //   userData
+      // );
       return response.data;
     } catch (error) {
       return rejectWithValue(

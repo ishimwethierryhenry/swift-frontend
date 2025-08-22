@@ -1,9 +1,11 @@
-// src/App.jsx - UPDATED VERSION WITH SIGNUP ROUTE
+// src/App.jsx - UPDATED VERSION WITH FORGOT/RESET PASSWORD ROUTES
 import React from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import DefaultLayout from "./layouts/DefaultLayout";
 import Login from "./pages/Login";
-import Signup from "./pages/Signup"; // ✅ ADD THIS IMPORT
+import Signup from "./pages/Signup";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Pool from "./pages/Pool";
 import { Dashboard } from "./pages/Dashboard";
 import { GuestDashboard } from "./pages/GuestDashboard";
@@ -19,17 +21,13 @@ const routes = [
   {
     path: "/",
     element: <DefaultLayout />,
-    children: [{ path: "/", element: <LandingPage /> }],
-  },
-  {
-    path: "/",
-    element: <DefaultLayout />,
-    children: [{ path: "/login", element: <Login /> }],
-  },
-  {
-    path: "/",
-    element: <DefaultLayout />,
-    children: [{ path: "/signup", element: <Signup /> }], // ✅ ADD THIS ROUTE
+    children: [
+      { path: "/", element: <LandingPage /> },
+      { path: "/login", element: <Login /> },
+      { path: "/signup", element: <Signup /> },
+      { path: "/forgot-password", element: <ForgotPassword /> },
+      { path: "/reset-password/:token", element: <ResetPassword /> }
+    ],
   },
   {
     path: "/",
@@ -75,10 +73,10 @@ const routes = [
 const router = (
   <BrowserRouter>
     <Routes>
-      {routes.map((route) => (
-        <Route key={route.path} path={route.path} element={route.element}>
-          {route.children.map((child) => (
-            <Route key={child.path} path={child.path} element={child.element} />
+      {routes.map((route, index) => (
+        <Route key={index} path={route.path} element={route.element}>
+          {route.children.map((child, childIndex) => (
+            <Route key={childIndex} path={child.path} element={child.element} />
           ))}
         </Route>
       ))}

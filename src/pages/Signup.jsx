@@ -1,4 +1,4 @@
-// src/pages/Signup.jsx
+// src/pages/Signup.jsx - UPDATED VERSION WITH FORGOT PASSWORD LINK
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
@@ -344,6 +344,15 @@ export default function Signup() {
                 className="text-cyan-400 hover:text-cyan-300 text-sm transition-colors duration-300 block"
               >
                 Already have an account? Sign In
+              </Link>
+              <Link 
+                to="/forgot-password" 
+                className="text-cyan-400 hover:text-cyan-300 text-sm transition-colors duration-300 block flex items-center justify-center group"
+              >
+                <svg className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-3a1 1 0 011-1h2.586l6.243-6.243C13.067 10.5 14.147 10 15.257 10a6 6 0 016 6z" />
+                </svg>
+                Forgot your password?
               </Link>
               <Link 
                 to="/" 

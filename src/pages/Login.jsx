@@ -1,6 +1,6 @@
-// src/pages/Login.jsx - UPDATED VERSION WITH SIGNUP BUTTON
+// src/pages/Login.jsx - UPDATED VERSION WITH PASSWORD TOGGLE EYE ICON
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom"; // ✅ ADD THIS IMPORT
+import { Link } from "react-router-dom";
 import banner_IMG from "../assets/banner.jpeg";
 import logo2 from "../assets/logo2.png";
 import { useDispatch, useSelector } from "react-redux";
@@ -15,6 +15,9 @@ export default function Login() {
 
   const [isVisible, setIsVisible] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
+  
+  // NEW: Password visibility state
+  const [showPassword, setShowPassword] = useState(false);
 
   const [errors, setErrors] = useState({});
   const [loginData, setLoginData] = useState({
@@ -27,18 +30,18 @@ export default function Login() {
   }, []);
 
   useEffect(() => {
-  if (authHandler?.serverResponded) {
-    const userRole = localStorage.getItem("user_role");
-    
-    // Redirect based on user role
-    if (userRole === "guest") {
-      navigation("/guest-dashboard");
-    } else {
-      // Admin, operator, overseer go to main dashboard
-      navigation("/dashboard");
+    if (authHandler?.serverResponded) {
+      const userRole = localStorage.getItem("user_role");
+      
+      // Redirect based on user role
+      if (userRole === "guest") {
+        navigation("/guest-dashboard");
+      } else {
+        // Admin, operator, overseer go to main dashboard
+        navigation("/dashboard");
+      }
     }
-  }
-}, [authHandler?.serverResponded, navigation]);
+  }, [authHandler?.serverResponded, navigation]);
 
   const handleInput = (e) => {
     e.preventDefault();
@@ -47,6 +50,11 @@ export default function Login() {
       email: e.target.name === "email" ? e.target.value : prevState.email,
       password: e.target.name === "pwd" ? e.target.value : prevState.password,
     }));
+  };
+
+  // NEW: Toggle password visibility
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   const handleSubmit = (e) => {
@@ -158,25 +166,47 @@ export default function Login() {
                 )}
               </div>
 
-              {/* Password Field */}
+              {/* Password Field with Eye Icon */}
               <div className="space-y-2">
                 <label htmlFor="pwd" className="block text-white font-medium text-sm uppercase tracking-wide">
                   Password
                 </label>
                 <div className="relative">
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     name="pwd"
                     onChange={handleInput}
                     onFocus={() => setFocusedField('password')}
                     onBlur={() => setFocusedField(null)}
-                    className={`w-full px-4 py-4 bg-white/5 backdrop-blur-sm border-2 rounded-2xl text-white placeholder-gray-400 transition-all duration-300 focus:outline-none ${
+                    className={`w-full px-4 py-4 pr-12 bg-white/5 backdrop-blur-sm border-2 rounded-2xl text-white placeholder-gray-400 transition-all duration-300 focus:outline-none ${
                       focusedField === 'password'
                         ? 'border-cyan-400 bg-white/10 shadow-lg shadow-cyan-400/25 scale-105'
                         : 'border-white/20 hover:border-white/40'
                     }`}
                     placeholder="Enter your password"
                   />
+                  
+                  {/* Eye Icon Button */}
+                  <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none"
+                    disabled={authHandler.loading}
+                  >
+                    {showPassword ? (
+                      // Eye Slash (Hide) Icon
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                      </svg>
+                    ) : (
+                      // Eye (Show) Icon
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                  
                   <div className={`absolute inset-0 rounded-2xl bg-gradient-to-r from-cyan-400/20 to-blue-500/20 opacity-0 transition-opacity duration-300 pointer-events-none ${
                     focusedField === 'password' ? 'opacity-100' : ''
                   }`}></div>
@@ -184,6 +214,21 @@ export default function Login() {
                 {errors.password && (
                   <span className="text-red-400 text-sm animate-pulse">{errors.password}</span>
                 )}
+              </div>
+
+              {/* Forgot Password Link */}
+              <div className="flex items-center justify-between">
+                <div className="text-sm">
+                  <Link
+                    to="/forgot-password"
+                    className="font-medium text-cyan-400 hover:text-cyan-300 transition duration-300 flex items-center group"
+                  >
+                    <svg className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-3a1 1 0 011-1h2.586l6.243-6.243C13.067 10.5 14.147 10 15.257 10a6 6 0 016 6z" />
+                    </svg>
+                    Forgot your password?
+                  </Link>
+                </div>
               </div>
 
               {/* Login Button */}
@@ -210,7 +255,6 @@ export default function Login() {
 
             {/* Additional Links */}
             <div className="mt-6 text-center space-y-2">
-              {/* ✅ ADD SIGNUP LINK */}
               <Link 
                 to="/signup" 
                 className="text-cyan-400 hover:text-cyan-300 text-sm transition-colors duration-300 block"
