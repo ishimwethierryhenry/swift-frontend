@@ -2,7 +2,7 @@
 // src/services/waterQualityService.js
 import axios from 'axios';
 
-// const API_BASE_URL = import.meta.env.VITE_cdAPI_URL || 'http://localhost:3000';
+// const API_BASE_URL = import.meta.env.VITE_cdAPI_URL || 'https://swift-backend-88o8.onrender.com';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://swift-backend-88o8.onrender.com';
 

@@ -1,4 +1,4 @@
-// swift-frontend/src/validation/passwordSchema.js - FRONTEND VERSION (No Joi) - FIXED COLORS
+// swift-frontend/src/validation/passwordSchema.js - FRONTEND VERSION (No Joi) - UPDATED
 
 // Password strength checker for frontend use
 export const checkPasswordStrength = (password) => {
@@ -122,6 +122,28 @@ export const validatePasswordConfirmation = (password, confirmPassword) => {
   return { isValid: true };
 };
 
+// 🆕 NEW: Validate forced password change for first-time login
+export const validateForcePasswordChange = (newPassword, confirmPassword) => {
+  const errors = {};
+
+  // Password validation using existing function
+  const passwordValidation = validatePassword(newPassword);
+  if (!passwordValidation.isValid) {
+    errors.newPassword = passwordValidation.errors[0];
+  }
+
+  // Confirm password validation using existing function
+  const confirmValidation = validatePasswordConfirmation(newPassword, confirmPassword);
+  if (!confirmValidation.isValid) {
+    errors.confirmPassword = confirmValidation.error;
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors
+  };
+};
+
 // Validate reset password form
 export const validateResetPassword = (token, newPassword, confirmPassword) => {
   const errors = {};
@@ -191,10 +213,12 @@ export const validateForgotPassword = (email) => {
   };
 };
 
+// 🆕 UPDATED: Export object with new function included
 export default {
   checkPasswordStrength,
   validatePassword,
   validatePasswordConfirmation,
+  validateForcePasswordChange, // 🆕 NEW FUNCTION ADDED
   validateResetPassword,
   validateChangePassword,
   validateForgotPassword

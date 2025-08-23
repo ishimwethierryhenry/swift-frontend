@@ -2,7 +2,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
-// const API_URL = import.meta.env.VITE_APP_API_URL || "http://localhost:3000";
+// const API_URL = import.meta.env.VITE_APP_API_URL || "https://swift-backend-88o8.onrender.com";
 
 const API_URL = import.meta.env.VITE_APP_API_URL || "https://swift-backend-88o8.onrender.com";
 

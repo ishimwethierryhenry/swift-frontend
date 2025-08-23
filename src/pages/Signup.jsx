@@ -34,7 +34,7 @@ export default function Signup() {
 
   useEffect(() => {
     if (signupHandler?.success && signupHandler?.serverResponded) {
-      toast.success("Account created successfully! Please login to continue.");
+      toast.success("Account created successfully with a default password '12345678' ! Please login to continue");
       // Redirect to login page after successful signup
       setTimeout(() => {
         navigate("/login");

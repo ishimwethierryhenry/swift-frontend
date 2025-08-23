@@ -1,0 +1,759 @@
+// // src/pages/ChangePassword.jsx
+// import React, { useState, useEffect } from 'react';
+// import { useNavigate } from 'react-router-dom';
+// import { useSelector, useDispatch } from 'react-redux';
+// import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator';  // ✅ Default import
+// import { LoadingSpinner } from '../components/LoadingSpinner';                    // ✅ Named import
+// import { ErrorAlert } from '../components/ErrorAlert';                          // ✅ Named import
+
+// const ChangePassword = () => {
+//   const navigate = useNavigate();
+//   const dispatch = useDispatch();
+  
+//   // Get user from Redux state
+//   const { user, isLoading } = useSelector((state) => state.login);
+  
+//   const [formData, setFormData] = useState({
+//     newPassword: '',
+//     confirmPassword: ''
+//   });
+//   const [errors, setErrors] = useState({});
+//   const [isSubmitting, setIsSubmitting] = useState(false);
+//   const [passwordStrength, setPasswordStrength] = useState(null);
+
+//   // Redirect if user doesn't need password change
+//   useEffect(() => {
+//     if (user && !user.isFirstLogin) {
+//       navigate('/dashboard');
+//     }
+//   }, [user, navigate]);
+
+//   // Update password strength when password changes
+//   useEffect(() => {
+//     if (formData.newPassword) {
+//       // You can implement password strength checking here
+//       // or import from your existing validation
+//       checkPasswordStrength(formData.newPassword);
+//     }
+//   }, [formData.newPassword]);
+
+//   const checkPasswordStrength = (password) => {
+//     // Implement your password strength logic
+//     // This should match your backend validation
+//     const hasUpperCase = /[A-Z]/.test(password);
+//     const hasLowerCase = /[a-z]/.test(password);
+//     const hasNumbers = /\d/.test(password);
+//     const hasSpecialChar = /[@$!%*?&]/.test(password);
+//     const isLongEnough = password.length >= 8;
+
+//     const strength = {
+//       score: [hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChar, isLongEnough].filter(Boolean).length,
+//       isValid: hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar && isLongEnough
+//     };
+
+//     setPasswordStrength(strength);
+//   };
+
+//   const handleInputChange = (e) => {
+//     const { name, value } = e.target;
+//     setFormData(prev => ({
+//       ...prev,
+//       [name]: value
+//     }));
+
+//     // Clear specific error when user starts typing
+//     if (errors[name]) {
+//       setErrors(prev => ({
+//         ...prev,
+//         [name]: null
+//       }));
+//     }
+//   };
+
+//   const validateForm = () => {
+//     const newErrors = {};
+
+//     // Password validation
+//     if (!formData.newPassword) {
+//       newErrors.newPassword = 'New password is required';
+//     } else if (!passwordStrength?.isValid) {
+//       newErrors.newPassword = 'Password must contain uppercase, lowercase, number, and special character';
+//     }
+
+//     // Confirm password validation
+//     if (!formData.confirmPassword) {
+//       newErrors.confirmPassword = 'Please confirm your password';
+//     } else if (formData.newPassword !== formData.confirmPassword) {
+//       newErrors.confirmPassword = 'Passwords do not match';
+//     }
+
+//     setErrors(newErrors);
+//     return Object.keys(newErrors).length === 0;
+//   };
+
+//   const handleSubmit = async (e) => {
+//     e.preventDefault();
+    
+//     if (!validateForm()) return;
+
+//     setIsSubmitting(true);
+
+//     try {
+//       const token = localStorage.getItem('token');
+//       const response = await fetch(`https://swift-backend-88o8.onrender.com/password/force-change`, {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Authorization': `Bearer ${token}`
+//         },
+//         body: JSON.stringify({
+//           newPassword: formData.newPassword,
+//           confirmPassword: formData.confirmPassword
+//         })
+//       });
+
+//       const data = await response.json();
+
+//       if (response.ok) {
+//         // Update user state to reflect password change
+//         dispatch(updateUserFirstLogin(false));
+        
+//         // Show success message
+//         alert('Password changed successfully! Welcome to SWIFT!');
+        
+//         // Redirect to dashboard
+//         navigate('/dashboard');
+//       } else {
+//         setErrors({ submit: data.message || 'Failed to change password' });
+//       }
+//     } catch (error) {
+//       console.error('Password change error:', error);
+//       setErrors({ submit: 'An error occurred. Please try again.' });
+//     } finally {
+//       setIsSubmitting(false);
+//     }
+//   };
+
+//   const handleLogout = () => {
+//     localStorage.removeItem('token');
+//     localStorage.removeItem('user');
+//     navigate('/login');
+//   };
+
+//   if (isLoading) {
+//     return <LoadingSpinner />;
+//   }
+
+//   return (
+//     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+//       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+//         {/* Header */}
+//         <div className="text-center mb-8">
+//           <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+//             <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+//               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+//             </svg>
+//           </div>
+//           <h1 className="text-2xl font-bold text-gray-900 mb-2">Change Your Password</h1>
+//           <p className="text-gray-600">
+//             For security reasons, you must change your password before continuing.
+//           </p>
+//         </div>
+
+//         {/* Error Alert */}
+//         {errors.submit && (
+//           <ErrorAlert message={errors.submit} onClose={() => setErrors(prev => ({ ...prev, submit: null }))} />
+//         )}
+
+//         {/* Form */}
+//         <form onSubmit={handleSubmit} className="space-y-6">
+//           {/* New Password */}
+//           <div>
+//             <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
+//               New Password
+//             </label>
+//             <input
+//               type="password"
+//               id="newPassword"
+//               name="newPassword"
+//               value={formData.newPassword}
+//               onChange={handleInputChange}
+//               className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+//                 errors.newPassword ? 'border-red-500' : 'border-gray-300'
+//               }`}
+//               placeholder="Enter your new password"
+//               disabled={isSubmitting}
+//             />
+//             {errors.newPassword && (
+//               <p className="mt-1 text-sm text-red-600">{errors.newPassword}</p>
+//             )}
+            
+//             {/* Password Strength Indicator */}
+//             {formData.newPassword && (
+//               <PasswordStrengthIndicator password={formData.newPassword} />
+//             )}
+//           </div>
+
+//           {/* Confirm Password */}
+//           <div>
+//             <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+//               Confirm Password
+//             </label>
+//             <input
+//               type="password"
+//               id="confirmPassword"
+//               name="confirmPassword"
+//               value={formData.confirmPassword}
+//               onChange={handleInputChange}
+//               className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+//                 errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+//               }`}
+//               placeholder="Confirm your new password"
+//               disabled={isSubmitting}
+//             />
+//             {errors.confirmPassword && (
+//               <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+//             )}
+//           </div>
+
+//           {/* Password Requirements */}
+//           <div className="bg-blue-50 rounded-lg p-4">
+//             <h4 className="text-sm font-medium text-blue-900 mb-2">Password Requirements:</h4>
+//             <ul className="text-xs text-blue-800 space-y-1">
+//               <li>• At least 8 characters long</li>
+//               <li>• One uppercase letter (A-Z)</li>
+//               <li>• One lowercase letter (a-z)</li>
+//               <li>• One number (0-9)</li>
+//               <li>• One special character (@$!%*?&)</li>
+//             </ul>
+//           </div>
+
+//           {/* Submit Button */}
+//           <button
+//             type="submit"
+//             disabled={isSubmitting || !passwordStrength?.isValid}
+//             className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
+//               isSubmitting || !passwordStrength?.isValid
+//                 ? 'bg-gray-400 cursor-not-allowed text-white'
+//                 : 'bg-blue-600 hover:bg-blue-700 text-white'
+//             }`}
+//           >
+//             {isSubmitting ? 'Changing Password...' : 'Change Password'}
+//           </button>
+
+//           {/* Logout Option */}
+//           <div className="text-center">
+//             <button
+//               type="button"
+//               onClick={handleLogout}
+//               className="text-sm text-gray-600 hover:text-gray-800 underline"
+//               disabled={isSubmitting}
+//             >
+//               Logout and return to login
+//             </button>
+//           </div>
+//         </form>
+//       </div>
+//     </div>
+//   );
+// };
+
+// // Action to update user first login status
+// const updateUserFirstLogin = (isFirstLogin) => ({
+//   type: 'auth/updateFirstLogin',
+//   payload: isFirstLogin
+// });
+
+// export default ChangePassword;
+
+
+// src/pages/ChangePassword.jsx - GLASSMORPHISM VERSION
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import { toast } from 'react-toastify';
+import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+import { ErrorAlert } from '../components/ErrorAlert';
+import logo2 from '../assets/logo2.png';
+
+const ChangePassword = () => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  
+  // Get user from Redux state
+  const { user, isLoading } = useSelector((state) => state.login);
+  
+  const [isVisible, setIsVisible] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
+  const [formData, setFormData] = useState({
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState(null);
+  
+  // Password visibility state
+  const [showPassword, setShowPassword] = useState({
+    newPassword: false,
+    confirmPassword: false
+  });
+
+  // Initialize animations and redirect check
+  useEffect(() => {
+    setIsVisible(true);
+    
+    // Redirect if user doesn't need password change
+    if (user && !user.isFirstLogin) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
+
+  // Update password strength when password changes
+  useEffect(() => {
+    if (formData.newPassword) {
+      checkPasswordStrength(formData.newPassword);
+    }
+  }, [formData.newPassword]);
+
+  const checkPasswordStrength = (password) => {
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[@$!%*?&]/.test(password);
+    const isLongEnough = password.length >= 8;
+
+    const strength = {
+      score: [hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChar, isLongEnough].filter(Boolean).length,
+      isValid: hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar && isLongEnough
+    };
+
+    setPasswordStrength(strength);
+  };
+
+  // Toggle password visibility
+  const togglePasswordVisibility = (field) => {
+    setShowPassword(prev => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+
+    // Clear specific error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: null
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Password validation
+    if (!formData.newPassword) {
+      newErrors.newPassword = 'New password is required';
+    } else if (!passwordStrength?.isValid) {
+      newErrors.newPassword = 'Password must contain uppercase, lowercase, number, and special character';
+    }
+
+    // Confirm password validation
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (formData.newPassword !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+
+    setIsSubmitting(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`https://swift-backend-88o8.onrender.com/password/force-change`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          newPassword: formData.newPassword,
+          confirmPassword: formData.confirmPassword
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Update user state to reflect password change
+        dispatch(updateUserFirstLogin(false));
+        
+        // 🎉 Beautiful toast notification instead of alert!
+        toast.success("🎉 Password changed successfully! Welcome to SWIFT!", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          style: {
+            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            color: "white",
+            borderRadius: "12px",
+            fontWeight: "600",
+          },
+        });
+        
+        // Small delay for better UX, then redirect
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 1500);
+      } else {
+        setErrors({ submit: data.message || 'Failed to change password' });
+      }
+    } catch (error) {
+      console.error('Password change error:', error);
+      setErrors({ submit: 'An error occurred. Please try again.' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
+
+  // Loading state with glassmorphism
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  return (
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 overflow-hidden relative">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0">
+        <div className="absolute top-20 left-20 w-96 h-96 bg-orange-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+        <div className="absolute bottom-20 right-20 w-96 h-96 bg-yellow-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-amber-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse animation-delay-4000"></div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex flex-col w-full items-center justify-center p-8 relative z-10">
+        <div className={`w-full max-w-md transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+
+          {/* Logo Section */}
+          <div className={`flex items-center justify-center mb-12 transition-all duration-1000 delay-200 ${isVisible ? 'scale-100 opacity-100' : 'scale-90 opacity-0'}`}>
+            <div className="relative group mr-4">
+              <div className="absolute -inset-1 bg-gradient-to-r from-orange-400 via-yellow-400 to-orange-500 rounded-2xl opacity-75 group-hover:opacity-100 blur transition duration-300 group-hover:scale-110"></div>
+              <div className="relative w-16 h-16 bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl flex items-center justify-center border border-white/20 group-hover:scale-105 transition-transform duration-300 shadow-2xl">
+                <img
+                  src={logo2}
+                  alt="SWIFT Logo"
+                  className="w-12 h-12 object-cover rounded-xl"
+                />
+                <div className="absolute inset-2 bg-gradient-to-br from-orange-500/20 to-yellow-600/30 rounded-xl"></div>
+              </div>
+            </div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-300 via-yellow-200 to-orange-300 bg-clip-text text-transparent">
+              SWIFT
+            </h1>
+          </div>
+
+          {/* Header Text */}
+          <div className={`text-center mb-8 transition-all duration-1000 delay-400 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0'}`}>
+            <h2 className="text-3xl font-bold text-white mb-2">Change Your Password</h2>
+            <p className="text-gray-300 text-lg mb-4">
+              Welcome to SWIFT, {user?.fname || 'User'}! 
+            </p>
+            <div className="bg-yellow-500/20 border border-yellow-400/30 rounded-2xl p-4 backdrop-blur-sm">
+              <div className="flex items-center justify-center mb-2">
+                <svg className="w-6 h-6 text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <span className="text-yellow-400 font-semibold">Security Notice</span>
+              </div>
+              <p className="text-yellow-100 text-sm">
+                For security reasons, you must create a new password before accessing your account.
+              </p>
+            </div>
+          </div>
+
+          {/* Password Change Form */}
+          <form
+            onSubmit={handleSubmit}
+            className={`backdrop-blur-lg bg-white/10 rounded-3xl p-8 border border-white/20 shadow-2xl transition-all duration-1000 delay-600 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}
+          >
+            <div className="space-y-6">
+
+              {/* Error Alert */}
+              {errors.submit && (
+                <div className="bg-red-500/20 border border-red-400/30 rounded-2xl p-4 backdrop-blur-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center mr-3">
+                        <span className="text-white text-sm font-bold">!</span>
+                      </div>
+                      <div>
+                        <h4 className="text-red-300 font-semibold">Error</h4>
+                        <p className="text-red-200 text-sm">{errors.submit}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* New Password Field */}
+              <div className="space-y-2">
+                <label htmlFor="newPassword" className="block text-white font-medium text-sm uppercase tracking-wide">
+                  New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword.newPassword ? "text" : "password"}
+                    name="newPassword"
+                    value={formData.newPassword}
+                    onChange={handleInputChange}
+                    onFocus={() => setFocusedField('newPassword')}
+                    onBlur={() => setFocusedField(null)}
+                    className={`w-full px-4 py-4 pr-12 bg-white/5 backdrop-blur-sm border-2 rounded-2xl text-white placeholder-gray-400 transition-all duration-300 focus:outline-none ${
+                      focusedField === 'newPassword'
+                        ? 'border-orange-400 bg-white/10 shadow-lg shadow-orange-400/25'
+                        : errors.newPassword
+                        ? 'border-red-400'
+                        : 'border-white/20 hover:border-white/40'
+                    }`}
+                    placeholder="Enter your new password"
+                    disabled={isSubmitting}
+                  />
+                  
+                  {/* Eye Icon Button */}
+                  <button
+                    type="button"
+                    onClick={() => togglePasswordVisibility('newPassword')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none"
+                    disabled={isSubmitting}
+                  >
+                    {showPassword.newPassword ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+                
+                {errors.newPassword && (
+                  <span className="text-red-400 text-sm animate-pulse">{errors.newPassword}</span>
+                )}
+
+                {/* Password Strength Indicator */}
+                <PasswordStrengthIndicator password={formData.newPassword} showDetails={true} />
+              </div>
+
+              {/* Confirm Password Field */}
+              <div className="space-y-2">
+                <label htmlFor="confirmPassword" className="block text-white font-medium text-sm uppercase tracking-wide">
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword.confirmPassword ? "text" : "password"}
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    onFocus={() => setFocusedField('confirmPassword')}
+                    onBlur={() => setFocusedField(null)}
+                    className={`w-full px-4 py-4 pr-12 bg-white/5 backdrop-blur-sm border-2 rounded-2xl text-white placeholder-gray-400 transition-all duration-300 focus:outline-none ${
+                      focusedField === 'confirmPassword'
+                        ? 'border-orange-400 bg-white/10 shadow-lg shadow-orange-400/25'
+                        : errors.confirmPassword
+                        ? 'border-red-400'
+                        : 'border-white/20 hover:border-white/40'
+                    }`}
+                    placeholder="Confirm your new password"
+                    disabled={isSubmitting}
+                  />
+                  
+                  {/* Eye Icon Button */}
+                  <button
+                    type="button"
+                    onClick={() => togglePasswordVisibility('confirmPassword')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none"
+                    disabled={isSubmitting}
+                  >
+                    {showPassword.confirmPassword ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+                
+                {errors.confirmPassword && (
+                  <span className="text-red-400 text-sm animate-pulse">{errors.confirmPassword}</span>
+                )}
+
+                {/* Password Match Indicator */}
+                {formData.newPassword && formData.confirmPassword && (
+                  <div className={`flex items-center mt-2 text-sm transition-colors duration-300 ${
+                    formData.newPassword === formData.confirmPassword 
+                      ? 'text-green-400' 
+                      : 'text-red-400'
+                  }`}>
+                    {formData.newPassword === formData.confirmPassword ? (
+                      <>
+                        <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        Passwords match
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                        Passwords don't match
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Password Requirements Card */}
+              <div className="bg-orange-500/20 border border-orange-400/30 rounded-2xl p-4 backdrop-blur-sm">
+                <h4 className="text-orange-400 font-semibold mb-2 flex items-center">
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Password Requirements
+                </h4>
+                <ul className="text-orange-100 text-sm space-y-1">
+                  <li className="flex items-center">
+                    <span className="mr-2">•</span>
+                    At least 8 characters long
+                  </li>
+                  <li className="flex items-center">
+                    <span className="mr-2">•</span>
+                    One uppercase letter (A-Z)
+                  </li>
+                  <li className="flex items-center">
+                    <span className="mr-2">•</span>
+                    One lowercase letter (a-z)
+                  </li>
+                  <li className="flex items-center">
+                    <span className="mr-2">•</span>
+                    One number (0-9)
+                  </li>
+                  <li className="flex items-center">
+                    <span className="mr-2">•</span>
+                    One special character (@$!%*?&)
+                  </li>
+                </ul>
+              </div>
+
+              {/* Change Password Button */}
+              <button
+                type="submit"
+                disabled={isSubmitting || formData.newPassword !== formData.confirmPassword || !formData.newPassword}
+                className="w-full mt-8 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white font-bold py-4 px-8 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-orange-500/50 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
+              >
+                <span className={`relative z-10 transition-all duration-300 ${isSubmitting ? 'opacity-0' : 'opacity-100'}`}>
+                  Change Password & Continue
+                </span>
+
+                {/* Loading Spinner */}
+                {isSubmitting && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  </div>
+                )}
+
+                {/* Button Hover Effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-orange-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              </button>
+            </div>
+
+            {/* Additional Links */}
+            <div className="mt-6 text-center space-y-2">
+              <button 
+                type="button"
+                onClick={handleLogout}
+                className="text-orange-400 hover:text-orange-300 text-sm transition-colors duration-300 underline"
+                disabled={isSubmitting}
+              >
+                Logout and return to login
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* Floating Particles */}
+      <div className="absolute inset-0 pointer-events-none">
+        {[...Array(6)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-2 h-2 bg-orange-300 rounded-full opacity-30"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animation: `float ${3 + Math.random() * 2}s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 2}s`
+            }}
+          ></div>
+        ))}
+      </div>
+
+      <style jsx>{`
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px) rotate(0deg);
+            opacity: 0.3;
+          }
+          50% {
+            transform: translateY(-20px) rotate(180deg);
+            opacity: 0.6;
+          }
+        }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
+      `}</style>
+    </div>
+  );
+};
+
+// Action to update user first login status
+const updateUserFirstLogin = (isFirstLogin) => ({
+  type: 'auth/updateFirstLogin',
+  payload: isFirstLogin
+});
+
+export default ChangePassword;

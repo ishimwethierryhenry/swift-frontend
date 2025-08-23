@@ -41,7 +41,7 @@
 //       }
 
 //       // Send request to backend
-//       const response = await fetch(`${import.meta.env.VITE_APP_API_URL || "http://localhost:3000"}/password/forgot`, {
+//       const response = await fetch(`${import.meta.env.VITE_APP_API_URL || "https://swift-backend-88o8.onrender.com"}/password/forgot`, {
 //         method: 'POST',
 //         headers: {
 //           'Content-Type': 'application/json',
@@ -325,7 +325,7 @@ export default function ForgotPassword() {
     }
 
     // try {
-    //   const response = await fetch("http://localhost:3000/password/forgot", {
+    //   const response = await fetch("https://swift-backend-88o8.onrender.com/password/forgot", {
     //     method: 'POST',
     //     headers: {
     //       'Content-Type': 'application/json',
@@ -344,7 +344,7 @@ export default function ForgotPassword() {
 
       if (response.ok) {
         setEmailSent(true);
-        toast.success("Password reset instructions have been sent to your email.");
+        toast.success("Password reset instructions have been sent to your email. Kindly check your email and do not forget the SPAM folders.");
       } else {
         const data = await response.json();
         toast.error(data.message || "Failed to send reset email. Please try again.");
