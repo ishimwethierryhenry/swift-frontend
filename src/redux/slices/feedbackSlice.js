@@ -1,4 +1,4 @@
-// =================== FEEDBACK REDUX SLICE ===================
+// =================== FEEDBACK REDUX SLICE - FIXED ENDPOINTS ===================
 // src/redux/slices/feedbackSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
@@ -10,7 +10,7 @@ export const submitFeedback = createAsyncThunk(
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        `${import.meta.env.VITE_BASE_URL}/feedback/submit`,
+        `${import.meta.env.VITE_BASE_URL}/guest-feedback/submit`,
         feedbackData,
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -31,7 +31,7 @@ export const fetchMyFeedback = createAsyncThunk(
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `${import.meta.env.VITE_BASE_URL}/feedback/my-feedback`,
+        `${import.meta.env.VITE_BASE_URL}/guest-feedback/my-feedback`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -52,7 +52,7 @@ export const fetchAllFeedback = createAsyncThunk(
       const token = localStorage.getItem('token');
       const queryParams = new URLSearchParams(params).toString();
       const response = await axios.get(
-        `${import.meta.env.VITE_BASE_URL}/feedback/all?${queryParams}`,
+        `${import.meta.env.VITE_BASE_URL}/guest-feedback/all?${queryParams}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -72,7 +72,7 @@ export const fetchFeedbackStats = createAsyncThunk(
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `${import.meta.env.VITE_BASE_URL}/feedback/statistics?timeRange=${timeRange}`,
+        `${import.meta.env.VITE_BASE_URL}/guest-feedback/statistics?timeRange=${timeRange}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -92,7 +92,7 @@ export const respondToFeedback = createAsyncThunk(
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        `${import.meta.env.VITE_BASE_URL}/feedback/respond/${feedbackId}`,
+        `${import.meta.env.VITE_BASE_URL}/guest-feedback/respond/${feedbackId}`,
         { adminResponse, status },
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -113,7 +113,7 @@ export const updateFeedbackStatus = createAsyncThunk(
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        `${import.meta.env.VITE_BASE_URL}/feedback/status/${feedbackId}`,
+        `${import.meta.env.VITE_BASE_URL}/guest-feedback/status/${feedbackId}`,
         { status },
         {
           headers: { Authorization: `Bearer ${token}` }

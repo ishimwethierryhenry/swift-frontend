@@ -1,9 +1,10 @@
-// =================== COMPLETE DYNAMIC GUEST FEEDBACK ===================
-// src/pages/GuestFeedback.jsx - Complete integration with Redux and backend
+// =================== UPDATED GUEST FEEDBACK WITH PROPER POOLS INTEGRATION ===================
+// src/pages/GuestFeedback.jsx - Updated to work with existing Redux structure
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import FeedbackForm from '../components/FeedbackForm';
 import { fetchMyFeedback, clearErrors } from '../redux/slices/feedbackSlice';
+import { poolsAvailable } from '../redux/slices/poolsByLocationSlice'; // IMPORT YOUR EXISTING ACTION
 import { toast } from 'react-toastify';
 
 import { 
@@ -28,7 +29,7 @@ import {
 const GuestFeedback = () => {
   const dispatch = useDispatch();
   
-  // Redux state
+  // Redux state - USE YOUR EXISTING STRUCTURE
   const { 
     myFeedback, 
     myFeedbackLoading, 
@@ -36,6 +37,15 @@ const GuestFeedback = () => {
     submitLoading,
     submitError 
   } = useSelector((state) => state.feedback);
+
+  // ACCESS POOLS FROM YOUR EXISTING SLICE STRUCTURE
+  const { 
+    response: pools, 
+    loading: poolsLoading, 
+    error: poolsError,
+    serverResponded
+  } = useSelector((state) => state.poolsByLocation);
+
   const user = useSelector((state) => state.user.user);
   
   // Local state
@@ -44,16 +54,35 @@ const GuestFeedback = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Load feedback data on component mount
+  // Load feedback and pools data on component mount
   useEffect(() => {
     if (user?.role === 'guest') {
       dispatch(fetchMyFeedback());
+      
+      // FETCH POOLS USING YOUR EXISTING ACTION
+      if (user?.location) {
+        console.log('Fetching pools for user location:', user.location);
+        dispatch(poolsAvailable(user.location));
+      }
     }
     const timer = setTimeout(() => setIsVisible(true), 100);
     return () => clearTimeout(timer);
   }, [dispatch, user]);
 
-  // Handle errors
+  // Debug authentication and user data
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    console.log('Token Debug:', {
+      tokenExists: !!token,
+      tokenLength: token?.length,
+      tokenStart: token?.substring(0, 20) + '...',
+      userFromRedux: user,
+      userRole: user?.role,
+      userLocation: user?.location
+    });
+  }, [user]);
+
+  // Handle errors - INCLUDING POOLS ERROR
   useEffect(() => {
     if (myFeedbackError) {
       toast.error(myFeedbackError);
@@ -63,29 +92,39 @@ const GuestFeedback = () => {
       toast.error(submitError);
       dispatch(clearErrors());
     }
-  }, [myFeedbackError, submitError, dispatch]);
+    if (poolsError) {
+      toast.error('Failed to load pools for your location');
+    }
+  }, [myFeedbackError, submitError, poolsError, dispatch]);
 
-  // Manual refresh function
+  // Manual refresh function - REFRESH BOTH FEEDBACK AND POOLS
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
       await dispatch(fetchMyFeedback()).unwrap();
-      toast.success('Feedback refreshed successfully!');
+      
+      // ALSO REFRESH POOLS
+      if (user?.location) {
+        dispatch(poolsAvailable(user.location));
+      }
+      
+      toast.success('Data refreshed successfully!');
     } catch (error) {
-      toast.error('Failed to refresh feedback');
+      toast.error('Failed to refresh data');
     } finally {
       setRefreshing(false);
     }
   };
 
-  // Calculate dynamic statistics from real data
+  // Calculate dynamic statistics from real data - HANDLE UNDEFINED STATE
+  const feedbackArray = myFeedback || [];
   const feedbackStats = {
-    totalFeedback: myFeedback.length,
-    pendingFeedback: myFeedback.filter(f => ['submitted', 'under_review'].includes(f.status)).length,
-    inProgressFeedback: myFeedback.filter(f => f.status === 'in_progress').length,
-    resolvedFeedback: myFeedback.filter(f => f.status === 'resolved').length,
-    averageRating: myFeedback.length > 0 && myFeedback.some(f => f.rating)
-      ? (myFeedback.filter(f => f.rating).reduce((acc, f) => acc + f.rating, 0) / myFeedback.filter(f => f.rating).length).toFixed(1)
+    totalFeedback: feedbackArray.length,
+    pendingFeedback: feedbackArray.filter(f => ['submitted', 'under_review'].includes(f.status)).length,
+    inProgressFeedback: feedbackArray.filter(f => f.status === 'in_progress').length,
+    resolvedFeedback: feedbackArray.filter(f => f.status === 'resolved').length,
+    averageRating: feedbackArray.length > 0 && feedbackArray.some(f => f.rating)
+      ? (feedbackArray.filter(f => f.rating).reduce((acc, f) => acc + f.rating, 0) / feedbackArray.filter(f => f.rating).length).toFixed(1)
       : 'N/A'
   };
 
@@ -175,14 +214,19 @@ const GuestFeedback = () => {
     </div>
   );
 
-  // Enhanced FeedbackModal component
+  // UPDATED FeedbackModal - PASS POOLS DATA TO FEEDBACKFORM
   const FeedbackModal = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
 
     return (
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50 overflow-y-auto">
         <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-          <FeedbackForm onClose={onClose} />
+          <FeedbackForm 
+            onClose={onClose} 
+            pools={pools || []}
+            poolsLoading={poolsLoading}
+            poolsError={poolsError}
+          />
         </div>
       </div>
     );
@@ -217,7 +261,7 @@ const GuestFeedback = () => {
       )}
 
       {/* Empty State */}
-      {!myFeedbackLoading && !myFeedbackError && myFeedback.length === 0 && (
+      {!myFeedbackLoading && !myFeedbackError && feedbackArray.length === 0 && (
         <div className="text-center py-8 sm:py-12">
           <div className="p-3 sm:p-4 bg-white/10 rounded-full w-fit mx-auto mb-4">
             <MessageSquare className="h-8 w-8 sm:h-12 sm:w-12 text-cyan-400" />
@@ -235,7 +279,7 @@ const GuestFeedback = () => {
       )}
 
       {/* Feedback List with Real Data */}
-      {!myFeedbackLoading && !myFeedbackError && myFeedback.length > 0 && (
+      {!myFeedbackLoading && !myFeedbackError && feedbackArray.length > 0 && (
         <div className="space-y-3 sm:space-y-4">
           {/* Refresh Button */}
           <div className="flex justify-end mb-4">
@@ -249,7 +293,7 @@ const GuestFeedback = () => {
             </button>
           </div>
 
-          {myFeedback.map((feedback) => {
+          {feedbackArray.map((feedback) => {
             const statusDisplay = getStatusDisplay(feedback.status);
             const StatusIcon = statusDisplay.icon;
             
@@ -448,7 +492,7 @@ const GuestFeedback = () => {
       </div>
 
       {/* Feedback Status Breakdown */}
-      {myFeedback.length > 0 && (
+      {feedbackArray.length > 0 && (
         <div className={`transition-all duration-1000 delay-900 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
           <div className="relative group">
             <div className="absolute -inset-0.5 sm:-inset-1 lg:-inset-2 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl sm:rounded-2xl lg:rounded-3xl opacity-20 group-hover:opacity-30 transition-opacity duration-300 blur-lg"></div>
@@ -459,8 +503,8 @@ const GuestFeedback = () => {
               </h3>
               <div className="space-y-3 sm:space-y-4">
                 {['submitted', 'under_review', 'in_progress', 'resolved'].map((status) => {
-                  const count = myFeedback.filter(f => f.status === status).length;
-                  const percentage = myFeedback.length > 0 ? (count / myFeedback.length) * 100 : 0;
+                  const count = feedbackArray.filter(f => f.status === status).length;
+                  const percentage = feedbackArray.length > 0 ? (count / feedbackArray.length) * 100 : 0;
                   const statusDisplay = getStatusDisplay(status);
                   
                   return (
@@ -607,9 +651,9 @@ const GuestFeedback = () => {
                         <Icon className="h-3 w-3 sm:h-4 sm:w-4" />
                         <span className="hidden xs:inline sm:inline">{tab.label}</span>
                         <span className="xs:hidden sm:hidden">{tab.id === 'list' ? 'List' : 'Stats'}</span>
-                        {tab.id === 'list' && myFeedback.length > 0 && (
+                        {tab.id === 'list' && feedbackArray.length > 0 && (
                           <span className="bg-cyan-500/20 text-cyan-300 text-xs font-medium px-1.5 sm:px-2 py-0.5 rounded-full border border-cyan-400/30 ml-1">
-                            {myFeedback.length}
+                            {feedbackArray.length}
                           </span>
                         )}
                       </button>

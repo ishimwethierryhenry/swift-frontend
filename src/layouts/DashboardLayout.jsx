@@ -1,4 +1,4 @@
-// UPDATED DashboardLayout.jsx - Mobile Responsive Red Banner
+// UPDATED DashboardLayout.jsx - Mobile Responsive High-Contrast Banner
 import { Outlet } from "react-router-dom";
 import { Navbar } from "../components/Navbar";
 import { Sidebar } from "../components/Sidebar";
@@ -6,42 +6,27 @@ import { useEffect } from "react";
 import tokenDec from "../helpers/tokenDec";
 import { FiEye, FiInfo, FiShield } from "react-icons/fi";
 
-// Mobile-Responsive Guest Access Banner Component
+// Mobile-Responsive Guest Access Banner Component - CYAN/TEAL THEME TO MATCH APP
 const GuestAccessBanner = ({ location }) => {
   return (
-    <div className="bg-gradient-to-r from-red-800/40 to-red-900/40 border border-red-700/50 rounded-xl p-2 sm:p-3 mx-2 sm:mx-4 mt-0">
-      <div className="flex flex-col sm:flex-row items-start space-y-2 sm:space-y-0 sm:space-x-4">
-        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-red-700 to-red-800 rounded-full flex items-center justify-center flex-shrink-0 mx-auto sm:mx-0">
-          <FiShield size={16} className="text-white sm:hidden" />
-          <FiShield size={20} className="text-white hidden sm:block" />
-        </div>
-        <div className="flex-1 text-center sm:text-left">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 mb-1 sm:mb-2">
-            <h3 className="text-red-200 font-semibold text-sm sm:text-lg">Guest Access Mode</h3>
-            <FiEye className="text-red-300 mx-auto sm:mx-0 mt-1 sm:mt-0" size={14} />
-          </div>
-          <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
-            <p className="text-red-300">
-              You are currently logged in as a <strong>guest user</strong> with read-only access.
-            </p>
-            <div className="flex flex-col sm:grid sm:grid-cols-3 gap-1 sm:gap-4 mt-2 sm:mt-3">
-              <div className="flex items-center justify-center sm:justify-start space-x-1 sm:space-x-2">
-                <FiEye className="text-red-400" size={12} />
-                <span className="text-red-300 text-xs sm:text-sm">View pool data</span>
-              </div>
-              <div className="flex items-center justify-center sm:justify-start space-x-1 sm:space-x-2">
-                <FiInfo className="text-red-400" size={12} />
-                <span className="text-red-300 text-xs sm:text-sm">Access historical records</span>
-              </div>
-              <div className="flex items-center justify-center sm:justify-start space-x-1 sm:space-x-2">
-                <FiShield className="text-red-400" size={12} />
-                <span className="text-red-300 text-xs sm:text-sm">Location: {location}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 shadow-lg border-b-2 border-cyan-400/30 py-0.5 px-1 sm:p-4 w-full backdrop-blur-sm">
+  <div className="flex items-center space-x-1 sm:space-x-4">
+    <div className="w-4 h-4 sm:w-12 sm:h-12 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
+      <FiShield size={8} className="text-white sm:hidden" />
+      <FiShield size={24} className="text-white hidden sm:block" />
     </div>
+    <div className="flex-1">
+      <div className="flex items-center space-x-1 sm:space-x-2">
+        <h3 className="text-white font-bold text-xs sm:text-xl tracking-wide drop-shadow-md">Guest Access Mode</h3>
+        <FiEye className="text-yellow-400" size={10} />
+        <span className="text-yellow-400 text-xs sm:text-sm font-medium">READ ONLY</span>
+      </div>
+      <p className="text-gray-200 text-xs sm:text-base font-medium drop-shadow-sm hidden sm:block">
+        You are currently logged in as a <span className="text-cyan-400 font-bold">guest user</span> with read-only access.
+      </p>
+    </div>
+  </div>
+</div>
   );
 };
 

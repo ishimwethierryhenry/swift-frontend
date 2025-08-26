@@ -199,126 +199,447 @@ export const AddOperators = () => {
     setFilteredOperators(filtered);
   }, [operators, searchTerm, filterBy, sortBy, sortOrder, userLocation]);
 
-  // Export to CSV (Simple implementation without external library)
+  // Export to CSV - exactly like Pool Management
   const exportToCSV = () => {
-    const headers = ['First Name', 'Last Name', 'Email', 'Phone', 'Location', 'Gender'];
-    const csvData = filteredOperators.map(operator => [
-      operator.fname || '',
-      operator.lname || '',
-      operator.email || '',
-      operator.phone || '',
-      operator.location || '',
-      operator.gender || ''
-    ]);
-
+    const headers = ["First Name", "Last Name", "Email", "Phone", "Location", "Gender"];
     const csvContent = [
-      headers.join(','),
-      ...csvData.map(row => row.map(cell => `"${cell}"`).join(','))
-    ].join('\n');
+      headers.join(","),
+      ...filteredOperators.map(operator => [
+        operator.fname || "",
+        operator.lname || "",
+        operator.email || "",
+        operator.phone || "",
+        operator.location || "",
+        operator.gender || ""
+      ].join(","))
+    ].join("\n");
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    if (link.download !== undefined) {
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `Pool_Operators_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `operators_report_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
   };
 
-  // Export to Excel (Simple HTML table format)
-  const exportToExcel = () => {
-    const headers = ['First Name', 'Last Name', 'Email', 'Phone', 'Location', 'Gender'];
-    const htmlTable = `
-      <table>
-        <thead>
-          <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
-        </thead>
-        <tbody>
-          ${filteredOperators.map(operator => `
-            <tr>
-              <td>${operator.fname || ''}</td>
-              <td>${operator.lname || ''}</td>
-              <td>${operator.email || ''}</td>
-              <td>${operator.phone || ''}</td>
-              <td>${operator.location || ''}</td>
-              <td>${operator.gender || ''}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
+  // Export to XLS - exactly like Pool Management
+  const exportToXLS = () => {
+    // For XLS generation, we'll create a simple tab-separated format
+    const headers = ["First Name", "Last Name", "Email", "Phone", "Location", "Gender"];
+    const xlsContent = [
+      headers.join("\t"),
+      ...filteredOperators.map(operator => [
+        operator.fname || "",
+        operator.lname || "",
+        operator.email || "",
+        operator.phone || "",
+        operator.location || "",
+        operator.gender || ""
+      ].join("\t"))
+    ].join("\n");
 
-    const blob = new Blob([htmlTable], { type: 'application/vnd.ms-excel' });
-    const link = document.createElement('a');
-    if (link.download !== undefined) {
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `Pool_Operators_${new Date().toISOString().split('T')[0]}.xls`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
+    const blob = new Blob([xlsContent], { type: "application/vnd.ms-excel" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `operators_report_${new Date().toISOString().split('T')[0]}.xls`;
+    link.click();
   };
 
-  // Export to PDF (Simple HTML to PDF)
-  const exportToPDF = () => {
-    const headers = ['First Name', 'Last Name', 'Email', 'Phone', 'Location', 'Gender'];
-    const htmlContent = `
-      <html>
-        <head>
-          <title>Pool Operators Report</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            h1 { color: #333; text-align: center; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f2f2f2; font-weight: bold; }
-            tr:nth-child(even) { background-color: #f9f9f9; }
-            .info { margin: 10px 0; color: #666; }
-          </style>
-        </head>
-        <body>
-          <h1>Pool Operators Report</h1>
-          <div class="info">Generated on: ${new Date().toLocaleDateString()}</div>
-          <div class="info">Total Operators: ${filteredOperators.length}</div>
-          <table>
-            <thead>
-              <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
-            </thead>
-            <tbody>
-              ${filteredOperators.map(operator => `
+  // Export to PDF - Stunning and innovative design
+  // Replace the entire exportToPDF function in your AddOperators component with this updated version:
+
+const exportToPDF = () => {
+  // For PDF generation, we'll create a stunning HTML structure with modern design
+  const printWindow = window.open('', '_blank');
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Pool Operators Report - SWIFT</title>
+        <style>
+          body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            min-height: 100vh; 
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            display: flex; 
+            flex-direction: column;
+          }
+          
+          .header { 
+            text-align: center; 
+            margin-bottom: 40px; 
+            background: linear-gradient(135deg, #00bcd4, #2196f3); 
+            color: white; 
+            padding: 30px; 
+            border-radius: 20px; 
+            box-shadow: 0 20px 40px rgba(0, 188, 212, 0.3);
+            position: relative;
+            overflow: hidden;
+          }
+          
+          .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.15), transparent);
+            animation: shimmer 3s infinite;
+          }
+          
+          @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+          }
+          
+          .logo-container { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            margin-bottom: 20px; 
+            position: relative;
+            z-index: 10;
+          }
+          
+          .logo-frame { 
+            position: relative; 
+            width: 100px; 
+            height: 100px; 
+            background: linear-gradient(135deg, #00bcd4, #2196f3); 
+            border-radius: 25px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            box-shadow: 0 15px 35px rgba(0,188,212,0.4); 
+            margin-right: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+          }
+          
+          .logo-img { 
+            width: 75px; 
+            height: 75px; 
+            object-fit: cover; 
+            border-radius: 18px;
+            filter: drop-shadow(0 5px 10px rgba(0,0,0,0.1));
+          }
+          
+          .logo-overlay { 
+            position: absolute; 
+            inset: 10px; 
+            background: linear-gradient(135deg, rgba(0, 188, 212, 0.2), rgba(33, 150, 243, 0.2)); 
+            border-radius: 15px; 
+          }
+          
+          .app-name { 
+            color: white; 
+            font-size: 48px; 
+            font-weight: 900; 
+            margin: 0; 
+            text-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            letter-spacing: 3px;
+          }
+          
+          .app-tagline { 
+            color: rgba(255,255,255,0.9); 
+            font-size: 20px; 
+            margin: 8px 0 0; 
+            font-weight: 300;
+            letter-spacing: 1px;
+          }
+          
+          .content { 
+            flex: 1; 
+            background: white; 
+            border-radius: 20px; 
+            padding: 40px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            position: relative;
+          }
+          
+          .report-title { 
+            text-align: center;
+            color: #1e40af; 
+            font-size: 42px; 
+            font-weight: 800; 
+            margin: 0 0 30px; 
+            background: linear-gradient(135deg, #00bcd4, #2196f3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 5px 15px rgba(0, 188, 212, 0.2);
+            position: relative;
+          }
+          
+          .report-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 250px;
+            height: 4px;
+            background: linear-gradient(135deg, #00bcd4, #2196f3);
+            border-radius: 2px;
+            box-shadow: 0 3px 10px rgba(0, 188, 212, 0.3);
+          }
+          
+          .header-info { 
+            text-align: center; 
+            margin-bottom: 40px; 
+            padding: 25px; 
+            background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+            border-radius: 15px;
+            border-left: 6px solid #00bcd4;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+          }
+          
+          .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+          }
+          
+          .info-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            border-top: 3px solid #00bcd4;
+          }
+          
+          .info-label {
+            color: #6b7280;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+          }
+          
+          .info-value {
+            color: #1f2937;
+            font-size: 18px;
+            font-weight: 700;
+          }
+          
+          .table-container {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            border: 1px solid #e5e7eb;
+          }
+          
+          table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin: 0;
+            font-size: 14px;
+          }
+          
+          th { 
+            background: linear-gradient(135deg, #00acc1, #1976d2); 
+            color: white; 
+            padding: 20px 15px; 
+            font-weight: 700; 
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 12px;
+            border: none;
+            position: relative;
+          }
+          
+          th:first-child { border-top-left-radius: 0; }
+          th:last-child { border-top-right-radius: 0; }
+          
+          td { 
+            padding: 18px 15px; 
+            border-bottom: 1px solid #f1f5f9;
+            color: #374151;
+            font-weight: 500;
+            transition: background-color 0.3s ease;
+          }
+          
+          tr:nth-child(even) td { 
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9); 
+          }
+          
+          tr:hover td {
+            background: linear-gradient(135deg, #e0f2fe, #e1f5fe);
+            transform: scale(1.001);
+          }
+          
+          .operator-name {
+            font-weight: 700;
+            color: #1e40af;
+          }
+          
+          .operator-email {
+            background: linear-gradient(135deg, #00bcd4, #2196f3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 600;
+          }
+          
+          .location-badge {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+          }
+          
+          .gender-tag {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          
+          .footer { 
+            margin-top: auto; 
+            padding-top: 40px; 
+            text-align: center; 
+            background: linear-gradient(135deg, #1e293b, #334155);
+            color: white;
+            margin: 40px -20px -20px -20px;
+            padding: 30px 20px;
+            position: relative;
+          }
+          
+          .footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, #00bcd4, #2196f3);
+          }
+          
+          .footer p {
+            margin: 8px 0;
+            font-size: 14px;
+            opacity: 0.9;
+          }
+          
+          .footer p:first-child {
+            font-weight: 600;
+            font-size: 16px;
+          }
+          
+          @media print { 
+            body { 
+              background: white;
+              min-height: 100vh; 
+            }
+            .footer { 
+              position: fixed; 
+              bottom: 0; 
+              left: 0; 
+              right: 0; 
+              margin: 0;
+              padding: 20px;
+            }
+            .content { 
+              padding-bottom: 100px; 
+            }
+          }
+          
+          @media (max-width: 768px) {
+            .info-grid { grid-template-columns: 1fr; }
+            .app-name { font-size: 36px; }
+            .report-title { font-size: 32px; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="logo-container">
+            <div class="logo-frame">
+              <img src="/src/assets/logo2.png" alt="SWIFT Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+              <div class="logo-overlay"></div>
+              <div style="display: none; color: #2196f3; font-size: 36px; font-weight: bold; align-items: center; justify-content: center; position: absolute; inset: 0;">S</div>
+            </div>
+            <div>
+              <div class="app-name">SWIFT</div>
+              <div class="app-tagline">Enhancing Pool Water Quality</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="content">
+          <h1 class="report-title">Pool Operators Report</h1>
+          
+          <div class="header-info">
+            <div class="info-grid">
+              <div class="info-item">
+                <div class="info-label">Generated On</div>
+                <div class="info-value">${new Date().toLocaleDateString()}</div>
+                <div style="font-size: 12px; color: #6b7280; margin-top: 3px;">${new Date().toLocaleTimeString()}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Total Operators</div>
+                <div class="info-value">${filteredOperators.length}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Location</div>
+                <div class="info-value">${localStorage.getItem('user_location') || 'All Locations'}</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="table-container">
+            <table>
+              <thead>
                 <tr>
-                  <td>${operator.fname || ''}</td>
-                  <td>${operator.lname || ''}</td>
-                  <td>${operator.email || ''}</td>
-                  <td>${operator.phone || ''}</td>
-                  <td>${operator.location || ''}</td>
-                  <td>${operator.gender || ''}</td>
+                  <th>👤 First Name</th>
+                  <th>👥 Last Name</th>
+                  <th>📧 Email</th>
+                  <th>📱 Phone</th>
+                  <th>📍 Location</th>
+                  <th>⚧ Gender</th>
                 </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </body>
-      </html>
-    `;
-
-    const blob = new Blob([htmlContent], { type: 'text/html' });
-    const link = document.createElement('a');
-    if (link.download !== undefined) {
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `Pool_Operators_${new Date().toISOString().split('T')[0]}.html`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  };
+              </thead>
+              <tbody>
+                ${filteredOperators.map((operator, index) => `
+                  <tr>
+                    <td class="operator-name">${operator.fname || 'N/A'}</td>
+                    <td class="operator-name">${operator.lname || 'N/A'}</td>
+                    <td class="operator-email">${operator.email || 'N/A'}</td>
+                    <td>${operator.phone || 'N/A'}</td>
+                    <td><span class="location-badge">${operator.location || 'N/A'}</span></td>
+                    <td><span class="gender-tag">${operator.gender || 'N/A'}</span></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <div class="footer">
+          <p>This report was generated by SWIFT - Enhancing Pool Water Quality Management System</p>
+          <p>© ${new Date().getFullYear()} SWIFT. All rights reserved. | Smart Water Intelligence and Forecasting Technology</p>
+        </div>
+      </body>
+    </html>
+  `;
+  
+  printWindow.document.write(htmlContent);
+  printWindow.document.close();
+  printWindow.print();
+};
 
   // Modal handlers
   const handleViewOperator = (operator) => {
@@ -505,18 +826,18 @@ export const AddOperators = () => {
                       CSV
                     </button>
                     <button
-                      onClick={exportToExcel}
+                      onClick={exportToXLS}
                       className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2"
                     >
                       <i className="fas fa-file-excel"></i>
-                      HTML
+                      Export XLS
                     </button>
                     <button
                       onClick={exportToPDF}
                       className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2"
                     >
-                      <i className="fas fa-file-alt"></i>
-                      HTML
+                      <i className="fas fa-file-pdf"></i>
+                      Export PDF
                     </button>
                   </div>
                 </div>

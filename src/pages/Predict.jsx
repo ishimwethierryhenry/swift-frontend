@@ -1,402 +1,3 @@
-// import { useEffect, useState } from "react";
-// import { useDispatch, useSelector } from "react-redux";
-// import { activeLinksActions } from "../redux/slices/activeLinkSlice";
-// import { forecast, forecastActions } from "../redux/slices/forecastSlice";
-// import {
-//   predictionActions,
-//   predictionNow,
-// } from "../redux/slices/predictionSlice";
-
-// export const Predict = () => {
-//   const dispatch = useDispatch();
-//   const forecastState = useSelector((state) => state.forecast || {
-//   response: null,
-//   loading: false,
-//   error: null,
-//   serverResponded: false,
-// });
-
-//   const forecastAdvState = useSelector((state) => state.availability || {
-//   response: null,
-//   loading: false,
-//   error: null,
-//   serverResponded: false,
-// });
-//   const [isVisible, setIsVisible] = useState(false);
-//   const [forecastData, setForecastData] = useState({
-//     day: null,
-//     hour: null,
-//   });
-//   const [forecastResponse, setForecastResponse] = useState();
-//   const [forecastAdvResponse, setForecastAdvResponse] = useState();
-//   const [predictionError, setPredictionError] = useState(false);
-
-//   const hours = [
-//     { val: 8, label: "8 AM" },
-//     { val: 9, label: "9 AM" },
-//     { val: 10, label: "10 AM" },
-//     { val: 11, label: "11 AM" },
-//     { val: 12, label: "12 PM" },
-//     { val: 13, label: "1 PM" },
-//     { val: 14, label: "2 PM" },
-//     { val: 15, label: "3 PM" },
-//     { val: 16, label: "4 PM" },
-//     { val: 17, label: "5 PM" },
-//     { val: 18, label: "6 PM" },
-//     { val: 19, label: "7 PM" },
-//     { val: 20, label: "8 PM" },
-//   ];
-
-//   const handleForecastAdvanced = () => {
-//     setPredictionError(false);
-//     dispatch(predictionActions.resetData());
-//     dispatch(predictionNow());
-//   };
-
-//   const handleForecast = (e) => {
-//     e.preventDefault();
-
-//     if (forecastData.day < 1 || forecastData.hour < 1) return;
-
-//     dispatch(forecastActions.resetData());
-//     dispatch(forecast(forecastData));
-//   };
-
-//   const handleInput = (e) => {
-//     e.preventDefault();
-
-//     setForecastData((prevState) => ({
-//       ...prevState,
-//       hour: e.target.name === "hour" ? e.target.value : prevState.hour,
-//       day: e.target.name === "day" ? e.target.value : prevState.day,
-//     }));
-//   };
-
-//   useEffect(() => {
-//   if (forecastAdvState?.serverResponded && forecastAdvState?.response) {
-//     console.log(forecastAdvState.response);
-//     if (forecastAdvState.response.error) setPredictionError(true);
-//     setForecastAdvResponse(forecastAdvState.response);
-//   }
-// }, [forecastAdvState?.serverResponded, forecastAdvState?.response]);
-
-//   useEffect(() => {
-//   if (forecastState?.serverResponded && forecastState?.response) {
-//     setForecastResponse(forecastState.response);
-//   }
-// }, [forecastState?.serverResponded, forecastState?.response]);
-
-//   useEffect(() => {
-//     dispatch(activeLinksActions.setActiveLink("Prediction"));
-//     setIsVisible(true);
-
-//     return () => {
-//       dispatch(predictionActions.resetData());
-//       dispatch(forecastActions.resetData());
-//       setForecastAdvResponse();
-//       setForecastData({
-//         day: null,
-//         hour: null,
-//       });
-//     };
-//   }, []);
-
-//   const isWaterSafe = forecastResponse && 
-//     (forecastResponse?.Conductivity <= 2000) &
-//     (forecastResponse.Turbidity <= 50) &
-//     (forecastResponse?.pH <= 7.8) &
-//     (forecastResponse?.pH >= 7.2);
-
-//   return (
-//     <div className="w-full min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 overflow-hidden relative">
-//       {/* Animated Background Elements - Responsive */}
-//       <div className="absolute inset-0">
-//         <div className="absolute top-10 left-10 sm:top-20 sm:left-20 w-48 h-48 sm:w-64 sm:h-64 md:w-96 md:h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
-//         <div className="absolute top-20 right-10 sm:top-40 sm:right-20 w-48 h-48 sm:w-64 sm:h-64 md:w-96 md:h-96 bg-cyan-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse animation-delay-2000"></div>
-//         <div className="absolute bottom-10 left-20 sm:bottom-20 sm:left-40 w-48 h-48 sm:w-64 sm:h-64 md:w-96 md:h-96 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse animation-delay-4000"></div>
-//       </div>
-
-//       {/* Floating Water Bubbles - Responsive */}
-//       <div className="absolute inset-0 pointer-events-none">
-//         {[...Array(6)].map((_, i) => (
-//           <div
-//             key={i}
-//             className={`absolute w-2 h-2 sm:w-3 sm:h-3 md:w-4 md:h-4 bg-cyan-300 rounded-full opacity-30 animate-bounce`}
-//             style={{
-//               left: `${20 + i * 12}%`,
-//               top: `${30 + i * 8}%`,
-//               animationDelay: `${i * 0.5}s`,
-//               animationDuration: `${3 + i * 0.5}s`
-//             }}
-//           ></div>
-//         ))}
-//       </div>
-
-//       {/* Scrollable Content Container - Responsive */}
-//       <div className="relative z-10 h-screen overflow-y-auto overflow-x-hidden pb-16 sm:pb-20 md:pb-24">
-//         <div className="px-4 sm:px-6 md:px-8 py-6 sm:py-8 max-w-7xl mx-auto space-y-4 sm:space-y-6 md:space-y-8 pb-16 sm:pb-20">
-          
-//           {/* Title Section - Responsive */}
-//           <div className={`text-center mb-8 sm:mb-10 md:mb-12 transition-all duration-1000 delay-300 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}>
-//             <div className="overflow-hidden">
-//               <label className={`font-bold text-3xl sm:text-4xl md:text-5xl text-white block transition-all duration-1000 delay-500 ${isVisible ? 'translate-y-0' : 'translate-y-full'}`}>
-//                 AI Prediction Center
-//               </label>
-//             </div>
-//             <div className="overflow-hidden">
-//               <label className={`font-bold text-lg sm:text-xl md:text-2xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 block mt-2 transition-all duration-1000 delay-700 ${isVisible ? 'translate-y-0' : 'translate-y-full'}`}>
-//                 Advanced water quality forecasting with 88% accuracy
-//               </label>
-//             </div>
-//             <div className="w-24 sm:w-28 md:w-32 h-1 bg-gradient-to-r from-cyan-400 to-blue-500 mx-auto rounded-full mt-4 sm:mt-6"></div>
-//           </div>
-
-//           {/* Selective Prediction Card - Mobile Optimized */}
-//           <div className={`relative group transition-all duration-700 delay-900 ${isVisible ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'}`}>
-//             <div className="absolute -inset-2 sm:-inset-3 md:-inset-4 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl sm:rounded-3xl opacity-30 group-hover:opacity-40 transition-opacity duration-300 blur-lg"></div>
-//             <div className="relative backdrop-blur-lg bg-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 border border-white/20 hover:border-white/40 transition-all duration-300">
-              
-//               <div className="flex flex-col gap-4 sm:gap-6">
-//                 <div className="flex flex-col gap-1 sm:gap-2">
-//                   <label className="font-bold text-xl sm:text-2xl md:text-3xl text-white">Selective Prediction</label>
-//                   <label className="font-semibold text-base sm:text-lg text-cyan-300">Time-Specific Forecasting</label>
-//                 </div>
-                
-//                 <p className="text-gray-300 text-sm sm:text-base md:text-lg leading-relaxed">
-//                   Use this interface to run prediction for a specific time of the week with an accuracy of over 88%
-//                 </p>
-
-//                 <form onSubmit={handleForecast} className="space-y-4 sm:space-y-6">
-//                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                    
-//                     {/* Day Selection */}
-//                     <div className="flex flex-col gap-2">
-//                       <label className="text-white font-semibold text-base sm:text-lg">Choose Day:</label>
-//                       <select
-//                         name="day"
-//                         className="h-11 sm:h-12 border border-white/20 bg-white/10 backdrop-blur-sm rounded-lg sm:rounded-xl px-3 sm:px-4 text-white focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all duration-300 text-sm sm:text-base"
-//                         onChange={handleInput}
-//                         id="day"
-//                         value={forecastData.day || "0"}
-//                       >
-//                         <option value="0" className="bg-slate-800 text-white">Select Day</option>
-//                         <option value="1" className="bg-slate-800 text-white">Monday</option>
-//                         <option value="2" className="bg-slate-800 text-white">Tuesday</option>
-//                         <option value="3" className="bg-slate-800 text-white">Wednesday</option>
-//                         <option value="4" className="bg-slate-800 text-white">Thursday</option>
-//                         <option value="5" className="bg-slate-800 text-white">Friday</option>
-//                         <option value="6" className="bg-slate-800 text-white">Saturday</option>
-//                         <option value="7" className="bg-slate-800 text-white">Sunday</option>
-//                       </select>
-//                     </div>
-
-//                     {/* Hour Selection */}
-//                     <div className="flex flex-col gap-2">
-//                       <label className="text-white font-semibold text-base sm:text-lg">Choose Hour:</label>
-//                       <select
-//                         name="hour"
-//                         className="h-11 sm:h-12 border border-white/20 bg-white/10 backdrop-blur-sm rounded-lg sm:rounded-xl px-3 sm:px-4 text-white focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all duration-300 text-sm sm:text-base"
-//                         onChange={handleInput}
-//                         id="hour"
-//                         value={forecastData.hour || "0"}
-//                       >
-//                         <option value="0" className="bg-slate-800 text-white">Select Hour</option>
-//                         {hours.map((item) => (
-//                           <option key={item.val} value={item.val} className="bg-slate-800 text-white">
-//                             {item.label}
-//                           </option>
-//                         ))}
-//                       </select>
-//                     </div>
-
-//                     {/* Submit Button - Full Width on Mobile */}
-//                     <div className="sm:col-span-2 lg:col-span-1 flex items-end">
-//                       <button
-//                         type="submit"
-//                         disabled={forecastState.loading}
-//                         className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:from-gray-500 disabled:to-gray-600 text-white font-semibold px-6 sm:px-8 py-3 rounded-lg sm:rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-cyan-500/25 disabled:cursor-not-allowed disabled:transform-none min-h-[44px] text-sm sm:text-base"
-//                       >
-//                         {forecastState?.loading ? 'Predicting...' : 'Predict'}
-//                       </button>
-//                     </div>
-//                   </div>
-//                 </form>
-//               </div>
-//             </div>
-//           </div>
-
-//           {/* Prediction Results Card - Mobile Responsive */}
-//           {forecastResponse && (
-//             <div className={`relative group transition-all duration-700 delay-1100 ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
-//               <div className="absolute -inset-2 sm:-inset-3 md:-inset-4 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl sm:rounded-3xl opacity-30 group-hover:opacity-40 transition-opacity duration-300 blur-lg"></div>
-//               <div className="relative backdrop-blur-lg bg-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 border border-white/20 hover:border-white/40 transition-all duration-300">
-                
-//                 <div className="flex flex-col gap-4 sm:gap-6">
-//                   <label className="font-bold text-xl sm:text-2xl md:text-3xl text-white">Prediction Results</label>
-                  
-//                   {/* Parameter Cards - Mobile Grid */}
-//                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-                    
-//                     {/* pH Card */}
-//                     <div className={`relative p-4 sm:p-6 rounded-xl sm:rounded-2xl border-2 transition-all duration-300 ${
-//                       (forecastResponse?.pH <= 7.8) & (forecastResponse?.pH >= 7.2)
-//                         ? "border-emerald-400 bg-emerald-500/20"
-//                         : "border-red-400 bg-red-500/20"
-//                     }`}>
-//                       <div className="flex flex-col gap-2 sm:gap-3">
-//                         <label className="font-bold text-lg sm:text-xl md:text-2xl text-white">pH Level</label>
-//                         <label className="font-bold text-2xl sm:text-3xl md:text-4xl text-cyan-300">
-//                           {forecastResponse?.pH.toFixed(2)}
-//                         </label>
-//                         <div className="text-xs sm:text-sm text-gray-300">
-//                           Optimal: 7.2 - 7.8
-//                         </div>
-//                       </div>
-//                     </div>
-
-//                     {/* Turbidity Card */}
-//                     <div className={`relative p-4 sm:p-6 rounded-xl sm:rounded-2xl border-2 transition-all duration-300 ${
-//                       forecastResponse.Turbidity <= 50
-//                         ? "border-emerald-400 bg-emerald-500/20"
-//                         : "border-red-400 bg-red-500/20"
-//                     }`}>
-//                       <div className="flex flex-col gap-2 sm:gap-3">
-//                         <label className="font-bold text-lg sm:text-xl md:text-2xl text-white">Turbidity</label>
-//                         <label className="font-bold text-2xl sm:text-3xl md:text-4xl text-cyan-300">
-//                           {forecastResponse.Turbidity.toFixed(2)}
-//                         </label>
-//                         <div className="text-xs sm:text-sm text-gray-300">
-//                           NTU (Max: 50)
-//                         </div>
-//                       </div>
-//                     </div>
-
-//                     {/* Conductivity Card */}
-//                     <div className={`relative p-4 sm:p-6 rounded-xl sm:rounded-2xl border-2 transition-all duration-300 md:col-span-1 ${
-//                       forecastResponse?.Conductivity <= 2000
-//                         ? "border-emerald-400 bg-emerald-500/20"
-//                         : "border-red-400 bg-red-500/20"
-//                     }`}>
-//                       <div className="flex flex-col gap-2 sm:gap-3">
-//                         <label className="font-bold text-lg sm:text-xl md:text-2xl text-white">Conductivity</label>
-//                         <label className="font-bold text-2xl sm:text-3xl md:text-4xl text-cyan-300">
-//                           {forecastResponse?.Conductivity.toFixed(2)}
-//                         </label>
-//                         <div className="text-xs sm:text-sm text-gray-300">
-//                           ppm (Max: 2000)
-//                         </div>
-//                       </div>
-//                     </div>
-//                   </div>
-
-//                   {/* Status Message - Mobile Optimized */}
-//                   <div className={`p-4 sm:p-6 rounded-xl sm:rounded-2xl border-2 ${
-//                     isWaterSafe 
-//                       ? "border-emerald-400 bg-emerald-500/20" 
-//                       : "border-red-400 bg-red-500/20"
-//                   }`}>
-//                     <p className={`font-bold text-sm sm:text-base md:text-lg ${
-//                       isWaterSafe ? "text-emerald-300" : "text-red-300"
-//                     }`}>
-//                       {isWaterSafe
-//                         ? "✅ The prediction indicates that the water parameters are going to be safe for the time predicted. Pool is ready for use."
-//                         : "⚠️ The prediction indicates that the water parameters are going to be unsafe for the time predicted. Immediate action required."
-//                       }
-//                     </p>
-//                   </div>
-//                 </div>
-//               </div>
-//             </div>
-//           )}
-
-//           {/* Maintenance Prediction Card - Mobile Responsive */}
-//           <div className={`relative group transition-all duration-700 delay-1300 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}>
-//             <div className="absolute -inset-2 sm:-inset-3 md:-inset-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl sm:rounded-3xl opacity-30 group-hover:opacity-40 transition-opacity duration-300 blur-lg"></div>
-//             <div className="relative backdrop-blur-lg bg-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 border border-white/20 hover:border-white/40 transition-all duration-300">
-              
-//               <div className="flex flex-col gap-4 sm:gap-6">
-//                 <div className="flex flex-col gap-1 sm:gap-2">
-//                   <label className="font-bold text-xl sm:text-2xl md:text-3xl text-white">Maintenance Prediction</label>
-//                   <label className="font-semibold text-base sm:text-lg text-purple-300">Advanced AI Scheduling</label>
-//                 </div>
-                
-//                 <p className="text-gray-300 text-sm sm:text-base md:text-lg leading-relaxed">
-//                   Use this interface to predict when the current swimming pool will need to be cleaned
-//                 </p>
-
-//                 <div className="flex flex-col gap-4">
-//                   <label className="font-semibold text-white text-base sm:text-lg">
-//                     Next cleaning estimated time:
-//                   </label>
-                  
-//                   {forecastAdvResponse && !predictionError ? (
-//                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-//                       <label className="font-bold text-xl sm:text-2xl text-emerald-400">
-//                         {forecastAdvResponse.hour < 1
-//                           ? "Exactly now"
-//                           : `${forecastAdvResponse.hour} hours`
-//                         }
-//                       </label>
-//                       <button
-//                         onClick={() => handleForecastAdvanced()}
-//                         className="text-purple-400 hover:text-purple-300 font-semibold underline transition-colors duration-300 text-sm sm:text-base"
-//                       >
-//                         Predict again?
-//                       </button>
-//                     </div>
-//                   ) : (
-//                     <button
-//                       onClick={() => handleForecastAdvanced()}
-//                       className="w-full sm:w-auto bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold px-6 py-3 rounded-lg sm:rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-purple-500/25 min-h-[44px] text-sm sm:text-base"
-//                     >
-//                       {forecastAdvState?.loading ? 'Predicting...' : 'Run Prediction'}
-//                     </button>
-//                   )}
-//                 </div>
-//               </div>
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-
-//       <style jsx>{`
-//         @keyframes float {
-//           0%, 100% { transform: translateY(0px); }
-//           50% { transform: translateY(-10px); }
-//         }
-//         .animation-delay-2000 { animation-delay: 2s; }
-//         .animation-delay-4000 { animation-delay: 4s; }
-        
-//         /* Ensure select dropdown visibility on mobile */
-//         select option {
-//           background-color: #1e293b;
-//           color: white;
-//         }
-        
-//         /* Touch-friendly form elements */
-//         @media (max-width: 768px) {
-//           button, select {
-//             min-height: 44px;
-//           }
-//         }
-//       `}</style>
-//     </div>
-//   );
-// };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { activeLinksActions } from "../redux/slices/activeLinkSlice";
@@ -446,6 +47,16 @@ export const Predict = () => {
     { val: 20, label: "8 PM" },
   ];
 
+  const dayNames = {
+    1: "Monday",
+    2: "Tuesday", 
+    3: "Wednesday",
+    4: "Thursday",
+    5: "Friday",
+    6: "Saturday",
+    7: "Sunday"
+  };
+
   const handleForecastAdvanced = () => {
     setPredictionError(false);
     dispatch(predictionActions.resetData());
@@ -469,6 +80,570 @@ export const Predict = () => {
       hour: e.target.name === "hour" ? e.target.value : prevState.hour,
       day: e.target.name === "day" ? e.target.value : prevState.day,
     }));
+  };
+
+  // Export prediction results to PDF
+  const exportPredictionToPDF = () => {
+    if (!forecastResponse) {
+      alert("No prediction results to export. Please run a prediction first.");
+      return;
+    }
+
+    const isWaterSafe = forecastResponse && 
+      (forecastResponse?.Conductivity <= 2000) &
+      (forecastResponse.Turbidity <= 50) &
+      (forecastResponse?.pH <= 7.8) &
+      (forecastResponse?.pH >= 7.2);
+
+    const selectedDay = dayNames[forecastData.day] || "Unknown";
+    const selectedHour = hours.find(h => h.val == forecastData.hour)?.label || "Unknown";
+
+    const printWindow = window.open('', '_blank');
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>AI Prediction Report - SWIFT</title>
+          <style>
+            body { 
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+              margin: 0; 
+              padding: 20px; 
+              min-height: 100vh; 
+              background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+              display: flex; 
+              flex-direction: column;
+            }
+            
+            .header { 
+              text-align: center; 
+              margin-bottom: 40px; 
+              background: linear-gradient(135deg, #00bcd4, #2196f3); 
+              color: white; 
+              padding: 30px; 
+              border-radius: 20px; 
+              box-shadow: 0 20px 40px rgba(0, 188, 212, 0.3);
+              position: relative;
+              overflow: hidden;
+            }
+            
+            .header::before {
+              content: '';
+              position: absolute;
+              top: -50%;
+              left: -50%;
+              width: 200%;
+              height: 200%;
+              background: linear-gradient(45deg, transparent, rgba(255,255,255,0.15), transparent);
+              animation: shimmer 3s infinite;
+            }
+            
+            @keyframes shimmer {
+              0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+              100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+            }
+            
+            .logo-container { 
+              display: flex; 
+              align-items: center; 
+              justify-content: center; 
+              margin-bottom: 20px; 
+              position: relative;
+              z-index: 10;
+            }
+            
+            .logo-frame { 
+              position: relative; 
+              width: 100px; 
+              height: 100px; 
+              background: linear-gradient(135deg, #00bcd4, #2196f3); 
+              border-radius: 25px; 
+              display: flex; 
+              align-items: center; 
+              justify-content: center; 
+              box-shadow: 0 15px 35px rgba(0,188,212,0.4); 
+              margin-right: 20px;
+              border: 3px solid rgba(255,255,255,0.3);
+            }
+            
+            .logo-img { 
+              width: 75px; 
+              height: 75px; 
+              object-fit: cover; 
+              border-radius: 18px;
+              filter: drop-shadow(0 5px 10px rgba(0,0,0,0.1));
+            }
+            
+            .logo-overlay { 
+              position: absolute; 
+              inset: 10px; 
+              background: linear-gradient(135deg, rgba(0, 188, 212, 0.2), rgba(33, 150, 243, 0.2)); 
+              border-radius: 15px; 
+            }
+            
+            .app-name { 
+              color: white; 
+              font-size: 48px; 
+              font-weight: 900; 
+              margin: 0; 
+              text-shadow: 0 5px 15px rgba(0,0,0,0.2);
+              letter-spacing: 3px;
+            }
+            
+            .app-tagline { 
+              color: rgba(255,255,255,0.9); 
+              font-size: 20px; 
+              margin: 8px 0 0; 
+              font-weight: 300;
+              letter-spacing: 1px;
+            }
+            
+            .content { 
+              flex: 1; 
+              background: white; 
+              border-radius: 20px; 
+              padding: 40px; 
+              box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+              position: relative;
+            }
+            
+            .report-title { 
+              text-align: center;
+              color: #1e40af; 
+              font-size: 42px; 
+              font-weight: 800; 
+              margin: 0 0 30px; 
+              background: linear-gradient(135deg, #00bcd4, #2196f3);
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              background-clip: text;
+              text-shadow: 0 5px 15px rgba(0, 188, 212, 0.2);
+              position: relative;
+            }
+            
+            .report-title::after {
+              content: '';
+              position: absolute;
+              bottom: -10px;
+              left: 50%;
+              transform: translateX(-50%);
+              width: 300px;
+              height: 4px;
+              background: linear-gradient(135deg, #00bcd4, #2196f3);
+              border-radius: 2px;
+              box-shadow: 0 3px 10px rgba(0, 188, 212, 0.3);
+            }
+            
+            .header-info { 
+              text-align: center; 
+              margin-bottom: 40px; 
+              padding: 25px; 
+              background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+              border-radius: 15px;
+              border-left: 6px solid #00bcd4;
+              box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            }
+            
+            .info-grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+              gap: 20px;
+              margin-top: 20px;
+            }
+            
+            .info-item {
+              background: white;
+              padding: 15px;
+              border-radius: 10px;
+              text-align: center;
+              box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+              border-top: 3px solid #00bcd4;
+            }
+            
+            .info-label {
+              color: #6b7280;
+              font-size: 14px;
+              font-weight: 600;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+              margin-bottom: 5px;
+            }
+            
+            .info-value {
+              color: #1f2937;
+              font-size: 18px;
+              font-weight: 700;
+            }
+
+            .prediction-section {
+              margin-bottom: 30px;
+            }
+
+            .section-title {
+              font-size: 24px;
+              font-weight: 700;
+              color: #1f2937;
+              margin-bottom: 20px;
+              padding-bottom: 10px;
+              border-bottom: 2px solid #e5e7eb;
+            }
+
+            .parameters-grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+              gap: 20px;
+              margin-bottom: 30px;
+            }
+
+            .parameter-card {
+              background: white;
+              border-radius: 15px;
+              padding: 20px;
+              box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+              border-left: 5px solid;
+            }
+
+            .parameter-card.safe {
+              border-left-color: #10b981;
+              background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
+            }
+
+            .parameter-card.unsafe {
+              border-left-color: #ef4444;
+              background: linear-gradient(135deg, #fef2f2, #fef1f1);
+            }
+
+            .parameter-name {
+              font-size: 18px;
+              font-weight: 600;
+              color: #374151;
+              margin-bottom: 10px;
+              display: flex;
+              justify-content: between;
+              align-items: center;
+            }
+
+            .parameter-value {
+              font-size: 36px;
+              font-weight: 800;
+              margin-bottom: 10px;
+            }
+
+            .parameter-value.safe {
+              background: linear-gradient(135deg, #00bcd4, #2196f3);
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+            }
+
+            .parameter-value.unsafe {
+              color: #ef4444;
+            }
+
+            .parameter-range {
+              font-size: 14px;
+              color: #6b7280;
+              margin-bottom: 15px;
+            }
+
+            .parameter-status {
+              display: inline-block;
+              padding: 6px 12px;
+              border-radius: 20px;
+              font-size: 12px;
+              font-weight: 600;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+
+            .parameter-status.safe {
+              background: #10b981;
+              color: white;
+            }
+
+            .parameter-status.unsafe {
+              background: #ef4444;
+              color: white;
+            }
+
+            .overall-status {
+              padding: 25px;
+              border-radius: 15px;
+              margin-bottom: 30px;
+              text-align: center;
+            }
+
+            .overall-status.safe {
+              background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
+              border: 2px solid #10b981;
+            }
+
+            .overall-status.unsafe {
+              background: linear-gradient(135deg, #fef2f2, #fef1f1);
+              border: 2px solid #ef4444;
+            }
+
+            .status-icon {
+              font-size: 48px;
+              margin-bottom: 15px;
+            }
+
+            .status-title {
+              font-size: 24px;
+              font-weight: 700;
+              margin-bottom: 10px;
+            }
+
+            .status-title.safe {
+              color: #10b981;
+            }
+
+            .status-title.unsafe {
+              color: #ef4444;
+            }
+
+            .status-description {
+              font-size: 16px;
+              color: #6b7280;
+              line-height: 1.6;
+            }
+
+            .maintenance-section {
+              background: linear-gradient(135deg, #f3e8ff, #faf5ff);
+              border-radius: 15px;
+              padding: 25px;
+              border-left: 5px solid #8b5cf6;
+              margin-bottom: 30px;
+            }
+
+            .maintenance-title {
+              font-size: 20px;
+              font-weight: 700;
+              color: #8b5cf6;
+              margin-bottom: 15px;
+            }
+
+            .maintenance-time {
+              font-size: 28px;
+              font-weight: 800;
+              color: #1f2937;
+              margin-bottom: 10px;
+            }
+            
+            .footer { 
+              margin-top: auto; 
+              padding-top: 40px; 
+              text-align: center; 
+              background: linear-gradient(135deg, #1e293b, #334155);
+              color: white;
+              margin: 40px -20px -20px -20px;
+              padding: 30px 20px;
+              position: relative;
+            }
+            
+            .footer::before {
+              content: '';
+              position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              height: 4px;
+              background: linear-gradient(135deg, #00bcd4, #2196f3);
+            }
+            
+            .footer p {
+              margin: 8px 0;
+              font-size: 14px;
+              opacity: 0.9;
+            }
+            
+            .footer p:first-child {
+              font-weight: 600;
+              font-size: 16px;
+            }
+            
+            @media print { 
+              body { 
+                background: white;
+                min-height: 100vh; 
+              }
+              .footer { 
+                position: fixed; 
+                bottom: 0; 
+                left: 0; 
+                right: 0; 
+                margin: 0;
+                padding: 20px;
+              }
+              .content { 
+                padding-bottom: 120px; 
+              }
+            }
+            
+            @media (max-width: 768px) {
+              .info-grid, .parameters-grid { grid-template-columns: 1fr; }
+              .app-name { font-size: 36px; }
+              .report-title { font-size: 32px; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="logo-container">
+              <div class="logo-frame">
+                <img src="/src/assets/logo2.png" alt="SWIFT Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                <div class="logo-overlay"></div>
+                <div style="display: none; color: #2196f3; font-size: 36px; font-weight: bold; align-items: center; justify-content: center; position: absolute; inset: 0;">S</div>
+              </div>
+              <div>
+                <div class="app-name">SWIFT</div>
+                <div class="app-tagline">Enhancing Pool Water Quality</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="content">
+            <h1 class="report-title">AI Prediction Report</h1>
+            
+            <div class="header-info">
+              <div class="info-grid">
+                <div class="info-item">
+                  <div class="info-label">Generated On</div>
+                  <div class="info-value">${new Date().toLocaleDateString()}</div>
+                  <div style="font-size: 12px; color: #6b7280; margin-top: 3px;">${new Date().toLocaleTimeString()}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Predicted Day</div>
+                  <div class="info-value">${selectedDay}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Predicted Time</div>
+                  <div class="info-value">${selectedHour}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Location</div>
+                  <div class="info-value">${localStorage.getItem('user_location') || 'All Locations'}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">AI Accuracy</div>
+                  <div class="info-value">88%</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="prediction-section">
+              <h2 class="section-title">🔬 Water Quality Prediction Results</h2>
+              
+              <div class="parameters-grid">
+                <div class="parameter-card ${(forecastResponse?.pH <= 7.8) & (forecastResponse?.pH >= 7.2) ? 'safe' : 'unsafe'}">
+                  <div class="parameter-name">
+                    🧪 pH Level
+                    <span class="parameter-status ${(forecastResponse?.pH <= 7.8) & (forecastResponse?.pH >= 7.2) ? 'safe' : 'unsafe'}">
+                      ${(forecastResponse?.pH <= 7.8) & (forecastResponse?.pH >= 7.2) ? 'Safe' : 'Unsafe'}
+                    </span>
+                  </div>
+                  <div class="parameter-value ${(forecastResponse?.pH <= 7.8) & (forecastResponse?.pH >= 7.2) ? 'safe' : 'unsafe'}">
+                    ${forecastResponse?.pH ? forecastResponse.pH.toFixed(2) : "0.00"}
+                  </div>
+                  <div class="parameter-range">Optimal Range: 7.2 - 7.8</div>
+                  <div style="font-size: 14px; color: #6b7280;">
+                    ${(forecastResponse?.pH || 7) < 7 ? 'Acidic water - May cause eye/skin irritation' 
+                      : (forecastResponse?.pH || 7) > 7.8 ? 'Alkaline water - May cause cloudiness' 
+                      : 'Balanced pH - Optimal for swimming'}
+                  </div>
+                </div>
+
+                <div class="parameter-card ${forecastResponse.Turbidity <= 50 ? 'safe' : 'unsafe'}">
+                  <div class="parameter-name">
+                    💧 Turbidity
+                    <span class="parameter-status ${forecastResponse.Turbidity <= 50 ? 'safe' : 'unsafe'}">
+                      ${forecastResponse.Turbidity <= 50 ? 'Safe' : 'Unsafe'}
+                    </span>
+                  </div>
+                  <div class="parameter-value ${forecastResponse.Turbidity <= 50 ? 'safe' : 'unsafe'}">
+                    ${forecastResponse.Turbidity ? forecastResponse.Turbidity.toFixed(2) : "0.00"}
+                  </div>
+                  <div class="parameter-range">NTU (Maximum: 50)</div>
+                  <div style="font-size: 14px; color: #6b7280;">
+                    ${(forecastResponse.Turbidity || 0) <= 10 ? 'Crystal clear water - Excellent visibility' 
+                      : (forecastResponse.Turbidity || 0) <= 25 ? 'Slightly hazy - Good for swimming'
+                      : (forecastResponse.Turbidity || 0) <= 50 ? 'Moderately turbid - Acceptable'
+                      : 'High turbidity - Cleaning required'}
+                  </div>
+                </div>
+
+                <div class="parameter-card ${forecastResponse?.Conductivity <= 2000 ? 'safe' : 'unsafe'}">
+                  <div class="parameter-name">
+                    ⚡ Conductivity
+                    <span class="parameter-status ${forecastResponse?.Conductivity <= 2000 ? 'safe' : 'unsafe'}">
+                      ${forecastResponse?.Conductivity <= 2000 ? 'Safe' : 'Unsafe'}
+                    </span>
+                  </div>
+                  <div class="parameter-value ${forecastResponse?.Conductivity <= 2000 ? 'safe' : 'unsafe'}">
+                    ${forecastResponse?.Conductivity ? forecastResponse.Conductivity.toFixed(2) : "0.00"}
+                  </div>
+                  <div class="parameter-range">ppm (Maximum: 2000)</div>
+                  <div style="font-size: 14px; color: #6b7280;">
+                    ${(forecastResponse?.Conductivity || 0) < 500 ? 'Low mineral content - Soft water' 
+                      : (forecastResponse?.Conductivity || 0) < 1000 ? 'Balanced minerals - Ideal'
+                      : (forecastResponse?.Conductivity || 0) < 2000 ? 'High dissolved solids - Acceptable'
+                      : 'Excessive minerals - Treatment needed'}
+                  </div>
+                </div>
+              </div>
+
+              <div class="overall-status ${isWaterSafe ? 'safe' : 'unsafe'}">
+                <div class="status-icon">${isWaterSafe ? '✅' : '⚠️'}</div>
+                <div class="status-title ${isWaterSafe ? 'safe' : 'unsafe'}">
+                  ${isWaterSafe ? 'POOL SAFE FOR USE' : 'IMMEDIATE ACTION REQUIRED'}
+                </div>
+                <div class="status-description">
+                  ${isWaterSafe 
+                    ? 'All water quality parameters are within safe ranges. The pool is predicted to be ready for swimming at the specified time.' 
+                    : 'One or more water quality parameters exceed safe limits. Pool maintenance and water treatment are recommended before use.'}
+                </div>
+              </div>
+            </div>
+
+            <div class="maintenance-section">
+              <div class="maintenance-title">🔧 Maintenance Prediction</div>
+              <div style="font-size: 16px; color: #6b7280; margin-bottom: 15px;">
+                Next cleaning estimated time:
+              </div>
+              ${forecastAdvResponse && !predictionError ? `
+                <div class="maintenance-time">
+                  ${forecastAdvResponse.hour < 1 ? "Cleaning needed now" : `${forecastAdvResponse.hour} hours until cleaning`}
+                </div>
+                <div style="font-size: 14px; color: #8b5cf6;">
+                  Based on current water conditions and usage patterns
+                </div>
+              ` : `
+                <div style="padding: 20px; background: #f3f4f6; border-radius: 10px; text-align: center;">
+                  <div style="font-size: 18px; color: #6b7280; margin-bottom: 10px;">
+                    ⚠️ No maintenance prediction available
+                  </div>
+                  <div style="font-size: 14px; color: #9ca3af;">
+                    Run maintenance prediction in the app to get estimated cleaning time
+                  </div>
+                </div>
+              `}
+            </div>
+
+            <div style="background: linear-gradient(135deg, #f1f5f9, #e2e8f0); border-radius: 15px; padding: 20px; font-size: 14px; color: #6b7280; line-height: 1.6;">
+              <strong>Disclaimer:</strong> This prediction is based on AI analysis with 88% accuracy. Actual water conditions may vary due to environmental factors, pool usage, and maintenance activities. Regular water testing is recommended for optimal safety.
+            </div>
+          </div>
+          
+          <div class="footer">
+            <p>This report was generated by SWIFT - AI Prediction Center</p>
+            <p>© ${new Date().getFullYear()} SWIFT. All rights reserved. | Smart Water Intelligence and Forecasting Technology</p>
+          </div>
+        </body>
+      </html>
+    `;
+    
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.print();
   };
 
   useEffect(() => {
@@ -624,14 +799,25 @@ export const Predict = () => {
             </div>
           </div>
 
-          {/* Enhanced Prediction Results Card - Mobile Responsive with Pool.jsx Style */}
+          {/* Enhanced Prediction Results Card with Export Button */}
           {forecastResponse && (
             <div className={`relative group transition-all duration-700 delay-1100 ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
               <div className="absolute -inset-2 sm:-inset-3 md:-inset-4 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl sm:rounded-3xl opacity-30 group-hover:opacity-40 transition-opacity duration-300 blur-lg"></div>
               <div className="relative backdrop-blur-lg bg-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 border border-white/20 hover:border-white/40 transition-all duration-300">
                 
                 <div className="flex flex-col gap-4 sm:gap-6">
-                  <label className="font-bold text-xl sm:text-2xl md:text-3xl text-white">Prediction Results</label>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <label className="font-bold text-xl sm:text-2xl md:text-3xl text-white">Prediction Results</label>
+                    
+                    {/* Export to PDF Button */}
+                    <button
+                      onClick={exportPredictionToPDF}
+                      className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 w-full sm:w-auto justify-center"
+                    >
+                      <i className="fas fa-file-pdf"></i>
+                      Export PDF Report
+                    </button>
+                  </div>
                   
                   {/* Enhanced Parameter Cards - Mobile Grid with Pool.jsx Style */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">

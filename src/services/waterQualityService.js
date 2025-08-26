@@ -1,110 +1,158 @@
-// =================== API SERVICE ===================
-// src/services/waterQualityService.js
+// FRONTEND: src/services/waterQualityService.js - UPDATED ROUTES
 import axios from 'axios';
 
-// const API_BASE_URL = import.meta.env.VITE_cdAPI_URL || 'https://swift-backend-88o8.onrender.com';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://swift-backend-88o8.onrender.com';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://swift-backend-88o8.onrender.com';
-
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-});
-
-// Add token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+class WaterQualityService {
+  // Start recording for pool testing - CORRECTED ROUTE
+  static async startRecording(data) {
+    try {
+      // Use /test/start-recording instead of /device/start-recording
+      const response = await axios.post(`${API_BASE_URL}/test/start-recording`, data, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      throw error.response?.data || error;
+    }
   }
-  return config;
-});
 
-export const waterQualityService = {
-  // =================== WATER QUALITY METHODS ===================
-  // Get historical data with filters
-  getHistoricalData: async (params = {}) => {
-    const response = await api.get('/water-quality/historical', { params });
-    return response.data;
-  },
+  // Stop recording - CORRECTED ROUTE
+  static async stopRecording(data) {
+    try {
+      // Use /test/stop-recording instead of /device/stop-recording
+      const response = await axios.post(`${API_BASE_URL}/test/stop-recording`, data, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error stopping recording:', error);
+      throw error.response?.data || error;
+    }
+  }
 
-  // Get statistics
-  getStatistics: async (params = {}) => {
-    const response = await api.get('/water-quality/statistics', { params });
-    return response.data;
-  },
+  // Save test data - CORRECTED ROUTE
+  static async saveTestData(data) {
+    try {
+      // Use /test/save-data instead of /pool-data/save-test-data
+      const response = await axios.post(`${API_BASE_URL}/test/save-data`, data, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error saving test data:', error);
+      throw error.response?.data || error;
+    }
+  }
 
-  // Get monthly data for charts
-  getMonthlyData: async (params = {}) => {
-    const response = await api.get('/water-quality/monthly', { params });
-    return response.data;
-  },
+  // Get device status - KEEP DEVICE ROUTE
+  static async getDeviceStatus(poolId) {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/device/status/${poolId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error getting device status:', error);
+      throw error.response?.data || error;
+    }
+  }
 
-  // Create new record
-  createRecord: async (data) => {
-    const response = await api.post('/water-quality/record', data);
-    return response.data;
-  },
+  // Save water quality data to database using proper water quality endpoint
+  static async saveWaterQualityData(data) {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/water-quality/record`, data, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error saving water quality data:', error);
+      throw error.response?.data || error;
+    }
+  }
 
-  // Update record
-  updateRecord: async (recordId, data) => {
-    const response = await api.put(`/water-quality/record/${recordId}`, data);
-    return response.data;
-  },
+  // Get historical water quality data
+  static async getHistoricalData(filters = {}) {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      Object.keys(filters).forEach(key => {
+        if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '') {
+          queryParams.append(key, filters[key]);
+        }
+      });
 
-  // Delete record
-  deleteRecord: async (recordId) => {
-    const response = await api.delete(`/water-quality/record/${recordId}`);
-    return response.data;
-  },
+      const response = await axios.get(`${API_BASE_URL}/water-quality/historical?${queryParams.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error getting historical data:', error);
+      throw error.response?.data || error;
+    }
+  }
 
-  // =================== DEVICE METHODS ===================
-  // Start device recording
-  startRecording: async (data) => {
-    const response = await api.post('/device/start-recording', data);
-    return response.data;
-  },
-
-  // Stop device recording
-  stopRecording: async (data) => {
-    const response = await api.post('/device/stop-recording', data);
-    return response.data;
-  },
-
-  // Get device status
-  getDeviceStatus: async (poolId) => {
-    const response = await api.get(`/device/status/${poolId}`);
-    return response.data;
-  },
-
-  // =================== POOL DATA METHODS ===================
-  // Save test data
-  saveTestData: async (data) => {
-    const response = await api.post('/pool-data/save-test-data', data);
-    return response.data;
-  },
-
-  // Get recent test data
-  getRecentTestData: async (poolId, limit = 10) => {
-    const response = await api.get(`/pool-data/recent/${poolId}`, { 
-      params: { limit } 
-    });
-    return response.data;
-  },
+  // Get recent test data for a pool
+  static async getRecentTestData(poolId, limit = 10) {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/pool-data/recent/${poolId}?limit=${limit}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error getting recent test data:', error);
+      throw error.response?.data || error;
+    }
+  }
 
   // Get pool testing statistics
-  getPoolTestingStats: async (poolId, timeRange = 'week') => {
-    const response = await api.get(`/pool-data/stats/${poolId}`, { 
-      params: { timeRange } 
-    });
-    return response.data;
-  },
+  static async getPoolTestingStats(poolId, timeRange = 'week') {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/pool-data/stats/${poolId}?timeRange=${timeRange}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error getting pool testing stats:', error);
+      throw error.response?.data || error;
+    }
+  }
 
   // Simulate device data (for testing)
-  simulateDeviceData: async (poolId) => {
-    const response = await api.post(`/pool-data/simulate/${poolId}`);
-    return response.data;
-  },
-};
+  static async simulateDeviceData(poolId) {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/pool-data/simulate/${poolId}`, {}, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error simulating device data:', error);
+      throw error.response?.data || error;
+    }
+  }
+}
 
-export default waterQualityService;
+export default WaterQualityService;

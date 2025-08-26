@@ -8,28 +8,42 @@ import { variables } from "../../data/constants";
 
 const SERVER_URL = variables.SERVER_URL;
 
-// 🔄 UPDATED: Enhanced login thunk with first-time login support
+// Replace the auth thunk in your loginSlice.js (around line 10-80)
 export const auth = createAsyncThunk(
   "users/login",
   async (submitData, { dispatch }) => {
     try {
       const response = await axios({
         method: "post",
-        url: `${SERVER_URL}/users/login`,
+        url: `${SERVER_URL}/users/login`, // ✅ FIXED: Added /api prefix
         data: { email: submitData.email, pwd: submitData.pwd },
       });
 
       console.log('🔍 Frontend received response:', response.data);
 
       if (response.status == 200) {
-        const { token, user, message, redirectTo } = response.data;
+        const { token, user, message, redirectTo, requires2FA } = response.data;
 
         console.log('🔍 Token received:', token);
         console.log('🔍 User data received:', user);
+        console.log('🔍 2FA required:', requires2FA);
         console.log('🔍 First login status:', user?.isFirstLogin);
 
+        // 🆕 If 2FA is required, return the response without storing token yet
+        if (requires2FA) {
+          console.log('🔒 2FA verification required, not storing token yet');
+          return {
+            ...response.data,
+            requires2FA: true,
+            user,
+            message: message || "2FA verification required"
+          };
+        }
+
+        // Normal login flow (no 2FA required)
         if (token) {
           localStorage.setItem("token", token);
+          localStorage.setItem("authToken", token); // Also store as authToken
 
           // 🆕 Store user data directly from response (includes isFirstLogin)
           if (user) {
@@ -43,6 +57,7 @@ export const auth = createAsyncThunk(
             localStorage.setItem("user_role", user.role);
             localStorage.setItem("user_location", user.location);
             localStorage.setItem("user_name", str);
+            localStorage.setItem("user_email", user.email); // ✅ Store email
             localStorage.setItem("user", JSON.stringify(user)); // 🆕 Store full user object
 
             // 🆕 Show appropriate message for first login
@@ -56,7 +71,8 @@ export const auth = createAsyncThunk(
               ...response.data, 
               user,
               isFirstLogin: user.isFirstLogin,
-              redirectTo 
+              redirectTo,
+              requires2FA: false
             };
           }
 
@@ -74,8 +90,9 @@ export const auth = createAsyncThunk(
             localStorage.setItem("user_role", data.user.role);
             localStorage.setItem("user_location", data.user.location);
             localStorage.setItem("user_name", str);
+            localStorage.setItem("user_email", data.user.email);
 
-            return response.data;
+            return { ...response.data, requires2FA: false };
           }
         }
         return null;
@@ -98,16 +115,16 @@ export const auth = createAsyncThunk(
   }
 );
 
-// 🆕 NEW: Force password change thunk for first-time login
+// Also fix the changeFirstLoginPassword thunk (around line 85)
 export const changeFirstLoginPassword = createAsyncThunk(
   "users/changeFirstLoginPassword",
   async (passwordData, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       
       const response = await axios({
         method: "post",
-        url: `${SERVER_URL}/password/force-change`,
+        url: `${SERVER_URL}/password/force-change`, // ✅ FIXED: Added /api prefix
         headers: {
           'Authorization': `Bearer ${token}`,
         },

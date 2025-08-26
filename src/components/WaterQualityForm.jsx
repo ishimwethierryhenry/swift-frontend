@@ -25,7 +25,7 @@ export const WaterQualityForm = ({ poolId, onSuccess, onCancel }) => {
 
   const fetchPools = async () => {
     try {
-      const response = await fetch('/api/pools/locations', {
+      const response = await fetch(`${API_BASE_URL}/pools/locations`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }

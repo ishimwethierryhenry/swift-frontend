@@ -338,6 +338,451 @@ function Pool() {
     }
   };
 
+
+  // Export current sensor readings to PDF
+const exportSensorDataToPDF = () => {
+  if (!sensorData || (!sensorData.ph && !sensorData.tds && !sensorData.tbdt)) {
+    alert("No sensor data available to export. Please wait for live data or start a test session.");
+    return;
+  }
+
+  // Calculate safety status for each parameter
+  const phSafe = sensorData.ph > 7.1 && sensorData.ph < 7.3;
+  const tbdtSafe = sensorData.tbdt <= 50;
+  const tdsSafe = sensorData.tds < 2001;
+  const overallSafe = phSafe && tbdtSafe && tdsSafe;
+
+  const printWindow = window.open('', '_blank');
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Pool Monitor Report - SWIFT</title>
+        <style>
+          body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            min-height: 100vh; 
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            display: flex; 
+            flex-direction: column;
+          }
+          
+          .header { 
+            text-align: center; 
+            margin-bottom: 40px; 
+            background: linear-gradient(135deg, #00bcd4, #2196f3); 
+            color: white; 
+            padding: 30px; 
+            border-radius: 20px; 
+            box-shadow: 0 20px 40px rgba(0, 188, 212, 0.3);
+            position: relative;
+            overflow: hidden;
+          }
+          
+          .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.15), transparent);
+            animation: shimmer 3s infinite;
+          }
+          
+          @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+          }
+          
+          .logo-container { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            margin-bottom: 20px; 
+            position: relative;
+            z-index: 10;
+          }
+          
+          .logo-frame { 
+            position: relative; 
+            width: 100px; 
+            height: 100px; 
+            background: linear-gradient(135deg, #00bcd4, #2196f3); 
+            border-radius: 25px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            box-shadow: 0 15px 35px rgba(0,188,212,0.4); 
+            margin-right: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+          }
+          
+          .logo-img { 
+            width: 75px; 
+            height: 75px; 
+            object-fit: cover; 
+            border-radius: 18px;
+            filter: drop-shadow(0 5px 10px rgba(0,0,0,0.1));
+          }
+          
+          .logo-overlay { 
+            position: absolute; 
+            inset: 10px; 
+            background: linear-gradient(135deg, rgba(0, 188, 212, 0.2), rgba(33, 150, 243, 0.2)); 
+            border-radius: 15px; 
+          }
+          
+          .app-name { 
+            color: white; 
+            font-size: 48px; 
+            font-weight: 900; 
+            margin: 0; 
+            text-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            letter-spacing: 3px;
+          }
+          
+          .app-tagline { 
+            color: rgba(255,255,255,0.9); 
+            font-size: 20px; 
+            margin: 8px 0 0; 
+            font-weight: 300;
+            letter-spacing: 1px;
+          }
+          
+          .content { 
+            flex: 1; 
+            background: white; 
+            border-radius: 20px; 
+            padding: 40px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            position: relative;
+          }
+          
+          .report-title { 
+            text-align: center;
+            color: #1e40af; 
+            font-size: 42px; 
+            font-weight: 800; 
+            margin: 0 0 30px; 
+            background: linear-gradient(135deg, #00bcd4, #2196f3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 5px 15px rgba(0, 188, 212, 0.2);
+            position: relative;
+          }
+          
+          .report-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 280px;
+            height: 4px;
+            background: linear-gradient(135deg, #00bcd4, #2196f3);
+            border-radius: 2px;
+            box-shadow: 0 3px 10px rgba(0, 188, 212, 0.3);
+          }
+          
+          .header-info { 
+            text-align: center; 
+            margin-bottom: 40px; 
+            padding: 25px; 
+            background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+            border-radius: 15px;
+            border-left: 6px solid #00bcd4;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+          }
+          
+          .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+          }
+          
+          .info-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            border-top: 3px solid #00bcd4;
+          }
+          
+          .info-label {
+            color: #6b7280;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+          }
+          
+          .info-value {
+            color: #1f2937;
+            font-size: 18px;
+            font-weight: 700;
+          }
+
+          .parameters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+          }
+
+          .parameter-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-left: 5px solid;
+          }
+
+          .parameter-card.safe {
+            border-left-color: #10b981;
+            background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
+          }
+
+          .parameter-card.unsafe {
+            border-left-color: #ef4444;
+            background: linear-gradient(135deg, #fef2f2, #fef1f1);
+          }
+
+          .parameter-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+
+          .parameter-value {
+            font-size: 36px;
+            font-weight: 800;
+            margin-bottom: 10px;
+          }
+
+          .parameter-value.safe {
+            background: linear-gradient(135deg, #00bcd4, #2196f3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+          }
+
+          .parameter-value.unsafe {
+            color: #ef4444;
+          }
+
+          .parameter-status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+
+          .parameter-status.safe {
+            background: #10b981;
+            color: white;
+          }
+
+          .parameter-status.unsafe {
+            background: #ef4444;
+            color: white;
+          }
+
+          .overall-status {
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+          }
+
+          .overall-status.safe {
+            background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
+            border: 2px solid #10b981;
+          }
+
+          .overall-status.unsafe {
+            background: linear-gradient(135deg, #fef2f2, #fef1f1);
+            border: 2px solid #ef4444;
+          }
+
+          .overall-status.caution {
+            background: linear-gradient(135deg, #fffbeb, #fef3c7);
+            border: 2px solid #f59e0b;
+          }
+
+          .status-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 10px;
+          }
+
+          .status-title.safe { color: #10b981; }
+          .status-title.unsafe { color: #ef4444; }
+          .status-title.caution { color: #f59e0b; }
+          
+          .footer { 
+            margin-top: auto; 
+            padding-top: 40px; 
+            text-align: center; 
+            background: linear-gradient(135deg, #1e293b, #334155);
+            color: white;
+            margin: 40px -20px -20px -20px;
+            padding: 30px 20px;
+            position: relative;
+          }
+          
+          .footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, #00bcd4, #2196f3);
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="logo-container">
+            <div class="logo-frame">
+              <img src="/src/assets/logo2.png" alt="SWIFT Logo" class="logo-img" onerror="this.style.display='none';" />
+              <div class="logo-overlay"></div>
+            </div>
+            <div>
+              <div class="app-name">SWIFT</div>
+              <div class="app-tagline">Enhancing Pool Water Quality</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="content">
+          <h1 class="report-title">Pool Monitor Report</h1>
+          
+          <div class="header-info">
+            <div class="info-grid">
+              <div class="info-item">
+                <div class="info-label">Generated On</div>
+                <div class="info-value">${new Date().toLocaleDateString()}</div>
+                <div style="font-size: 12px; color: #6b7280; margin-top: 3px;">${new Date().toLocaleTimeString()}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Connection Status</div>
+                <div class="info-value">${connectionStatus.includes('Receiving') ? 'LIVE' : connectionStatus.includes('Connected') ? 'CONNECTED' : 'OFFLINE'}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Overall Status</div>
+                <div class="info-value">${overallStatus.status}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Location</div>
+                <div class="info-value">${localStorage.getItem('user_location') || 'serena'}</div>
+              </div>
+              ${testSession.isActive ? `
+                <div class="info-item">
+                  <div class="info-label">Test Pool</div>
+                  <div class="info-value">${testSession.poolName}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Data Points</div>
+                  <div class="info-value">${testSession.dataCount}</div>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+
+          <div class="parameters-grid">
+            <div class="parameter-card ${phSafe ? 'safe' : 'unsafe'}">
+              <div class="parameter-name">
+                🧪 pH Level
+                <span class="parameter-status ${phSafe ? 'safe' : 'unsafe'}">
+                  ${phSafe ? 'Safe' : 'Unsafe'}
+                </span>
+              </div>
+              <div class="parameter-value ${phSafe ? 'safe' : 'unsafe'}">
+                ${sensorData?.ph ? sensorData.ph.toFixed(2) : "0.00"}
+              </div>
+              <div style="font-size: 14px; color: #6b7280;">Optimal Range: 7.1 - 7.3</div>
+            </div>
+
+            <div class="parameter-card ${tbdtSafe ? 'safe' : 'unsafe'}">
+              <div class="parameter-name">
+                💧 Turbidity
+                <span class="parameter-status ${tbdtSafe ? 'safe' : 'unsafe'}">
+                  ${tbdtSafe ? 'Safe' : 'Unsafe'}
+                </span>
+              </div>
+              <div class="parameter-value ${tbdtSafe ? 'safe' : 'unsafe'}">
+                ${sensorData?.tbdt ? Math.max(0, sensorData.tbdt.toFixed(2)) : "0.00"}
+              </div>
+              <div style="font-size: 14px; color: #6b7280;">NTU (Maximum: 50)</div>
+            </div>
+
+            <div class="parameter-card ${tdsSafe ? 'safe' : 'unsafe'}">
+              <div class="parameter-name">
+                ⚡ Conductivity
+                <span class="parameter-status ${tdsSafe ? 'safe' : 'unsafe'}">
+                  ${tdsSafe ? 'Safe' : 'Unsafe'}
+                </span>
+              </div>
+              <div class="parameter-value ${tdsSafe ? 'safe' : 'unsafe'}">
+                ${sensorData?.tds ? sensorData.tds.toFixed(2) : "0.00"}
+              </div>
+              <div style="font-size: 14px; color: #6b7280;">ppm (Maximum: 2000)</div>
+            </div>
+          </div>
+
+          <div class="overall-status ${overallSafe ? 'safe' : overallStatus.status === 'Caution' ? 'caution' : 'unsafe'}">
+            <div style="font-size: 48px; margin-bottom: 15px;">${overallSafe ? '✅' : overallStatus.status === 'Caution' ? '⚠️' : '🚨'}</div>
+            <div class="status-title ${overallSafe ? 'safe' : overallStatus.status === 'Caution' ? 'caution' : 'unsafe'}">
+              ${overallStatus.status.toUpperCase()} - ${overallSafe ? 'POOL SAFE FOR USE' : overallStatus.status === 'Caution' ? 'MONITOR CLOSELY' : 'IMMEDIATE ACTION REQUIRED'}
+            </div>
+            <div style="font-size: 16px; color: #6b7280; line-height: 1.6;">
+              ${overallSafe 
+                ? 'All water quality parameters are within safe ranges. Pool is ready for swimming.' 
+                : overallStatus.status === 'Caution'
+                ? 'Some parameters need attention. Monitor water quality and consider maintenance.'
+                : 'One or more parameters exceed safe limits. Pool maintenance and water treatment required before use.'}
+            </div>
+          </div>
+
+          ${maintainancePrediction ? `
+            <div style="background: linear-gradient(135deg, #f3e8ff, #faf5ff); border-radius: 15px; padding: 25px; border-left: 5px solid #8b5cf6; margin-bottom: 30px;">
+              <div style="font-size: 20px; font-weight: 700; color: #8b5cf6; margin-bottom: 15px;">🔧 Maintenance Prediction</div>
+              <div style="font-size: 24px; font-weight: 800; color: #1f2937;">
+                ${maintainancePrediction.hour < 1 ? "Cleaning needed now" : `${maintainancePrediction.hour} hours until cleaning`}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+        
+        <div class="footer">
+          <p>This report was generated by SWIFT - Real-Time Pool Monitor</p>
+          <p>© ${new Date().getFullYear()} SWIFT. All rights reserved.</p>
+        </div>
+      </body>
+    </html>
+  `;
+  
+  printWindow.document.write(htmlContent);
+  printWindow.document.close();
+  printWindow.print();
+};
+
+  
+
   const overallStatus = getOverallStatus();
 
   return (
@@ -898,16 +1343,28 @@ function Pool() {
             <div className="absolute -inset-1 xs:-inset-2 sm:-inset-3 md:-inset-4 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl sm:rounded-2xl lg:rounded-3xl opacity-30 group-hover:opacity-40 transition-opacity duration-300 blur-lg"></div>
             <div className="relative backdrop-blur-lg bg-white/10 rounded-xl sm:rounded-2xl lg:rounded-3xl p-3 xs:p-4 sm:p-6 md:p-8 border border-white/20 hover:border-white/40 transition-all duration-300">
               
-              <div className="flex flex-col gap-3 xs:gap-4 sm:gap-6">
-                <div className="text-center">
-                  <label className="font-bold text-lg xs:text-xl sm:text-2xl md:text-3xl text-white">Water Parameters Analytics</label>
-                  <p className="text-gray-300 mt-1 xs:mt-2 text-xs xs:text-sm sm:text-base">Real-time data visualization and trends</p>
-                  {testSession.isActive && (
-                    <p className="text-purple-300 text-sm mt-1">
-                      Test Session Active • {testSession.dataCount} data points collected
-                    </p>
-                  )}
+                <div className="flex flex-col gap-3 xs:gap-4 sm:gap-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="text-center sm:text-left">
+                    <label className="font-bold text-lg xs:text-xl sm:text-2xl md:text-3xl text-white">Water Parameters Analytics</label>
+                    <p className="text-gray-300 mt-1 xs:mt-2 text-xs xs:text-sm sm:text-base">Real-time data visualization and trends</p>
+                    {testSession.isActive && (
+                      <p className="text-purple-300 text-sm mt-1">
+                        Test Session Active • {testSession.dataCount} data points collected
+                      </p>
+                    )}
+                  </div>
+                  
+                  {/* Export PDF Button */}
+                  <button
+                    onClick={exportSensorDataToPDF}
+                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 w-full sm:w-auto justify-center"
+                  >
+                    <i className="fas fa-file-pdf"></i>
+                    Export PDF Report
+                  </button>
                 </div>
+
                 
                 {/* Charts Container - Mobile Stack */}
                 <div className="bg-white/5 backdrop-blur-sm rounded-lg sm:rounded-xl lg:rounded-2xl p-2 xs:p-3 sm:p-4 md:p-6 border border-white/10">

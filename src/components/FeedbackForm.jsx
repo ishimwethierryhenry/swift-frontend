@@ -1,20 +1,23 @@
-// =================== ENHANCED DYNAMIC FEEDBACK FORM ===================
-// src/components/FeedbackForm.jsx
+// =================== UPDATED FEEDBACK FORM WITH EXISTING REDUX ===================
+// src/components/FeedbackForm.jsx - Updated to work with existing Redux structure
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Star, Send, MessageSquare, AlertTriangle, ThumbsUp, Lightbulb, Settings, X, Loader2 } from 'lucide-react';
+import { Star, Send, MessageSquare, AlertTriangle, ThumbsUp, Lightbulb, Settings, X, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import { variables } from '../data/constants';
 
-const FeedbackForm = ({ onClose, selectedPool = null }) => {
+const FeedbackForm = ({ onClose, pools = [], poolsLoading = false, poolsError = null }) => {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.user);
-  const [pools, setPools] = useState([]);
+  
+  // Use pools from props (passed from GuestFeedback component)
+  const availablePools = pools || [];
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoadingPools, setIsLoadingPools] = useState(false);
   
   const [formData, setFormData] = useState({
-    poolId: selectedPool?.id || '',
+    poolId: '',
     feedbackType: 'general',
     priority: 'medium',
     title: '',
@@ -23,38 +26,12 @@ const FeedbackForm = ({ onClose, selectedPool = null }) => {
     isAnonymous: false
   });
 
-  // Fetch pools dynamically based on user location
+  // Debug logging
   useEffect(() => {
-    const fetchPools = async () => {
-      if (!user?.role === 'guest') return;
-      
-      setIsLoadingPools(true);
-      try {
-        const token = localStorage.getItem('token');
-        const userLocation = user?.location || localStorage.getItem('user_location') || 'serena';
-        
-        console.log('🏊 Fetching pools for location:', userLocation);
-        
-        const response = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/pools/${userLocation.replace(' ', '&')}`,
-          {
-            headers: { Authorization: `Bearer ${token}` }
-          }
-        );
-        
-        console.log('🏊 Pools fetched:', response.data.allPools);
-        setPools(response.data.allPools || []);
-      } catch (error) {
-        console.error('❌ Error fetching pools:', error);
-        toast.error('Failed to load pools');
-        setPools([]);
-      } finally {
-        setIsLoadingPools(false);
-      }
-    };
-
-    fetchPools();
-  }, [user]);
+    console.log('🎯 FeedbackForm - Available pools:', availablePools);
+    console.log('🎯 FeedbackForm - Pools loading:', poolsLoading);
+    console.log('🎯 FeedbackForm - User:', user);
+  }, [availablePools, poolsLoading, user]);
 
   // Feedback type options with enhanced styling
   const feedbackTypes = [
@@ -173,9 +150,17 @@ const FeedbackForm = ({ onClose, selectedPool = null }) => {
       };
 
       console.log('📤 Submitting feedback:', submitData);
+      console.log('📤 API Endpoint:', `${variables.SERVER_URL}/guest-feedback/submit`);
+      console.log('📤 Token exists:', !!token);
+      console.log('📤 Selected Pool Details:', {
+        poolId: submitData.poolId,
+        poolIdType: typeof submitData.poolId,
+        availablePools: availablePools
+      });
 
+      // Use your constants for the base URL - CHECK THE CORRECT ENDPOINT
       const response = await axios.post(
-        `${import.meta.env.VITE_BASE_URL}/feedback/submit`,
+        `${variables.SERVER_URL}/guest-feedback/submit`, // Changed from /feedback/submit
         submitData,
         {
           headers: { 
@@ -187,7 +172,7 @@ const FeedbackForm = ({ onClose, selectedPool = null }) => {
 
       console.log('✅ Feedback submitted successfully:', response.data);
       
-      toast.success('🎉 Feedback submitted successfully! Thank you for your input.');
+      toast.success('Feedback submitted successfully! Thank you for your input.');
       
       // Reset form
       setFormData({
@@ -199,9 +184,6 @@ const FeedbackForm = ({ onClose, selectedPool = null }) => {
         rating: 0,
         isAnonymous: false
       });
-
-      // Dispatch action to refresh feedback list if using Redux
-      // dispatch(fetchMyFeedback());
 
       if (onClose) {
         setTimeout(() => onClose(), 1000); // Small delay to show success message
@@ -257,27 +239,49 @@ const FeedbackForm = ({ onClose, selectedPool = null }) => {
               <label className="block text-sm font-medium text-cyan-300 mb-2">
                 Related Pool (Optional)
               </label>
-              <div className="relative">
-                <select
-                  name="poolId"
-                  value={formData.poolId}
-                  onChange={handleInputChange}
-                  disabled={isLoadingPools}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-cyan-400/50 focus:bg-white/15 transition-all duration-200 backdrop-blur-sm disabled:opacity-50"
-                >
-                  <option value="">Select a pool (or leave blank for general feedback)</option>
-                  {pools.map(pool => (
-                    <option key={pool.id} value={pool.id} className="bg-slate-800 text-white">
-                      {pool.name} - {pool.location}
+              
+              {/* Show pools loading state */}
+              {poolsLoading && (
+                <div className="flex items-center justify-center py-4 text-cyan-400">
+                  <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                  Loading pools for your location...
+                </div>
+              )}
+              
+              {/* Show pools error */}
+              {poolsError && (
+                <div className="p-3 bg-red-500/20 border border-red-400/30 rounded-lg text-red-300 text-sm mb-2">
+                  Failed to load pools. You can still submit general feedback.
+                </div>
+              )}
+              
+              {/* Pool selection dropdown */}
+              {!poolsLoading && (
+                <div className="relative">
+                  <select
+                    name="poolId"
+                    value={formData.poolId}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-cyan-400/50 focus:bg-white/15 transition-all duration-200 backdrop-blur-sm"
+                  >
+                    <option value="" className="bg-slate-800 text-white">
+                      Select a pool (or leave blank for general feedback)
                     </option>
-                  ))}
-                </select>
-                {isLoadingPools && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <Loader2 className="h-4 w-4 text-cyan-400 animate-spin" />
-                  </div>
-                )}
-              </div>
+                    {availablePools.map(pool => (
+                      <option key={pool.id} value={pool.id} className="bg-slate-800 text-white">
+                        {pool.name} - {pool.location}
+                      </option>
+                    ))}
+                  </select>
+                  
+                  {/* Show message when no pools available */}
+                  {!poolsLoading && availablePools.length === 0 && (
+                    <p className="text-sm text-gray-400 mt-2">
+                      No pools available in your location. You can still submit general feedback.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Feedback Type */}

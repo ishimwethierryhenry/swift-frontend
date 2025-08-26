@@ -29,7 +29,7 @@ export const HistoricalData = () => {
   const fetchPools = async () => {
     try {
       // Fetch pools from your existing API
-      const response = await fetch('/api/pools/locations', {
+      const response = await fetch('/pools/locations', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
