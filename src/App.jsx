@@ -97,7 +97,7 @@
 
 
 
-// src/App.jsx - UPDATED VERSION WITH GUEST ACCESS TO POOL, PREDICT, AND HISTORY
+// src/App.jsx - UPDATED VERSION WITH GUEST ACCESS TO POOL, PREDICT, HISTORY, AND MY-FEEDBACK
 import React from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -170,6 +170,14 @@ const App = () => {
           />
           <Route 
             path="feedback" 
+            element={
+              <ProtectedRoute allowedRoles={['guest']}>
+                <GuestFeedback />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="guest-feedback/my-feedback" 
             element={
               <ProtectedRoute allowedRoles={['guest']}>
                 <GuestFeedback />

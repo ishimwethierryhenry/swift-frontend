@@ -26,7 +26,7 @@ const MyFeedback = () => {
       }
 
       const response = await axios.get(
-        `${import.meta.env.VITE_BASE_URL}/feedback/my-feedback`,
+        `${import.meta.env.VITE_BASE_URL}/guest-feedback/my-feedback`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }

@@ -153,6 +153,31 @@ class WaterQualityService {
       throw error.response?.data || error;
     }
   }
+
+  // Add this method to your waterQualityService.js file
+
+  // Get aggregated statistics
+  static async getStatistics(filters = {}) {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      Object.keys(filters).forEach(key => {
+        if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '') {
+          queryParams.append(key, filters[key]);
+        }
+      });
+  
+      const response = await axios.get(`${API_BASE_URL}/water-quality/statistics?${queryParams.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error getting statistics:', error);
+      throw error.response?.data || error;
+    }
+  }
 }
 
 export default WaterQualityService;
