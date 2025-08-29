@@ -97,6 +97,19 @@ const GuestFeedback = () => {
     }
   }, [myFeedbackError, submitError, poolsError, dispatch]);
 
+  // In your GuestFeedback component, add this debug useEffect:
+   useEffect(() => {
+     console.log('🔍 Component Debug:', {
+       myFeedback,
+       myFeedbackType: typeof myFeedback,
+       isArray: Array.isArray(myFeedback),
+       length: myFeedback?.length,
+       myFeedbackLoading,
+       myFeedbackError,
+       user: user?.id
+     });
+   }, [myFeedback, myFeedbackLoading, myFeedbackError]);
+
   // Manual refresh function - REFRESH BOTH FEEDBACK AND POOLS
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -278,6 +291,7 @@ const GuestFeedback = () => {
         </div>
       )}
 
+      
       {/* Feedback List with Real Data */}
       {!myFeedbackLoading && !myFeedbackError && feedbackArray.length > 0 && (
         <div className="space-y-3 sm:space-y-4">

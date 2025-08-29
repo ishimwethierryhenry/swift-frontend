@@ -15,6 +15,7 @@ import { deleteOperator, resetDeleteOperatorState } from "../redux/slices/delete
 import { ModalOperator } from "../components/ModalOperator";
 import { resetUpdatePoolState } from "../redux/slices/updatePoolSlice";
 import { useNavigate } from "react-router-dom";
+import DashboardAnalyticsSection from '../components/DashboardAnalyticsSection';
 
 export const Dashboard = () => {
   const navigate = useNavigate();
@@ -375,13 +376,7 @@ export const Dashboard = () => {
                         Showing {Math.min(3, pools ? pools.length : 0)} of {pools ? pools.length : 0} total pools • Click "START TEST" to open Pool Monitor
                       </p>
                     </div>
-                    <div className="mt-3 sm:mt-0">
-                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full flex items-center justify-center animate-pulse">
-                        <div className="w-6 h-6 sm:w-8 sm:h-8 bg-white rounded-full flex items-center justify-center">
-                          <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full"></div>
-                        </div>
-                      </div>
-                    </div>
+                     
                   </div>
                   
                   {/* Pools Display - Limited to 3 */}
@@ -549,13 +544,7 @@ export const Dashboard = () => {
                         Showing {Math.min(3, pools ? pools.length : 0)} of {pools ? pools.length : 0} pools under your care • Click "START TEST" to open Pool Monitor
                       </p>
                     </div>
-                    <div className="mt-3 sm:mt-0">
-                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full flex items-center justify-center animate-pulse">
-                        <div className="w-6 h-6 sm:w-8 sm:h-8 bg-white rounded-full flex items-center justify-center">
-                          <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full"></div>
-                        </div>
-                      </div>
-                    </div>
+                     
                   </div>
                   
                   {/* Pools Display */}
@@ -678,13 +667,7 @@ export const Dashboard = () => {
                         Showing {Math.min(3, operators ? operators.length : 0)} of {operators ? operators.length : 0} active operators
                       </p>
                     </div>
-                    <div className="mt-3 sm:mt-0">
-                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full flex items-center justify-center animate-pulse">
-                        <div className="w-6 h-6 sm:w-8 sm:h-8 bg-white rounded-full flex items-center justify-center">
-                          <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full"></div>
-                        </div>
-                      </div>
-                    </div>
+                      
                   </div>
                   
                   {/* Operators Display - Limited to 3 */}
@@ -992,6 +975,15 @@ export const Dashboard = () => {
                 </div>
               )}
             </div>
+{/* Advanced Analytics Section */}
+<div className={`transition-all duration-1000 delay-900 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+  <DashboardAnalyticsSection 
+    userRole={userRole}
+    userLocation={userLocation}
+    pools={pools}
+  />
+</div>
+
           </div>
         </div>
       </div>

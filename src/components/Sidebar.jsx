@@ -41,67 +41,47 @@ const TwoFactorDisableModal = ({ isOpen, onClose, onConfirm, userName }) => {
     setError('');
 
     try {
-      // Call YOUR ACTUAL backend API to verify current TOTP and disable 2FA
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const API_BASE_URL = 'https://swift-backend-88o8.onrender.com';
       
-      // First verify the current TOTP code
-      const verifyResponse = await fetch('/2fa/verify', {  // ← YOUR ACTUAL ENDPOINT
+      console.log('Attempting to disable 2FA...');
+      
+      const response = await fetch(`${API_BASE_URL}/2fa/disable`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          userId: localStorage.getItem('user_id'),
-          token: verificationCode,
-          isBackupCode: false
-        })
+        body: JSON.stringify({ token: verificationCode })
       });
 
-      if (!verifyResponse.ok) {
-        const errorData = await verifyResponse.json();
-        throw new Error(errorData.message || 'Invalid verification code');
-      }
-
-      const verifyResult = await verifyResponse.json();
+      console.log('Response status:', response.status);
       
-      if (verifyResult.status !== 'success') {
-        throw new Error(verifyResult.message || 'Invalid verification code');
-      }
-
-      // If verification successful, now disable 2FA
-      const disableResponse = await fetch('/2fa/disable', {  // ← YOUR ACTUAL ENDPOINT
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          password: 'temp_password' // You might want to ask for password too
-        })
-      });
-
-      if (disableResponse.ok) {
-        const disableResult = await disableResponse.json();
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Response data:', result);
         
-        if (disableResult.status === 'success') {
+        if (result.status === 'success') {
+          // Update local state
+          localStorage.setItem(`2fa_enabled_${userName}`, 'false');
+          localStorage.removeItem(`2fa_secret_${userName}`);
+          localStorage.removeItem(`2fa_backup_codes_${userName}`);
+          
           onConfirm();
           onClose();
           setVerificationCode('');
-          
-          // Show success message
-          alert(disableResult.message || 'Two-Factor Authentication has been successfully disabled.');
+          alert(result.message || '2FA disabled successfully!');
         } else {
-          throw new Error(disableResult.message || 'Failed to disable 2FA');
+          throw new Error(result.message || 'Failed to disable 2FA');
         }
       } else {
-        const errorData = await disableResponse.json();
-        throw new Error(errorData.message || 'Failed to disable 2FA');
+        throw new Error(`Invalid verification number. Please check your authenticator app or if you think this is a mistake, kindly contact the support team!`);
+        // throw new Error(`Server error: ${response.status}`);
       }
 
     } catch (err) {
-      console.error('Backend disable verification failed:', err);
-      setError(err.message || 'Invalid verification code. Please check your authenticator app and try again.');
+      console.error('Error:', err);
+      setError(err.message || 'Failed to disable 2FA. Please try again.');
     }
 
     setIsVerifying(false);
@@ -174,7 +154,7 @@ const TwoFactorDisableModal = ({ isOpen, onClose, onConfirm, userName }) => {
                 autoFocus
               />
               <p className="text-gray-400 text-xs mt-2">
-                Open your authenticator app (Google Authenticator, Authy, etc.) and enter the current code for {userName}'s account.
+                Open your authenticator app and enter the current code for {userName}'s account.
               </p>
             </div>
 

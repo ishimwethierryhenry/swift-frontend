@@ -1,4 +1,4 @@
-// =================== FEEDBACK REDUX SLICE - FIXED ENDPOINTS ===================
+// =================== COMPLETE FEEDBACK REDUX SLICE FIX ===================
 // src/redux/slices/feedbackSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
@@ -9,6 +9,9 @@ export const submitFeedback = createAsyncThunk(
   async (feedbackData, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem('token');
+      console.log('📝 Submitting feedback:', feedbackData);
+      console.log('📝 API Endpoint:', `${import.meta.env.VITE_BASE_URL}/guest-feedback/submit`);
+      
       const response = await axios.post(
         `${import.meta.env.VITE_BASE_URL}/guest-feedback/submit`,
         feedbackData,
@@ -16,8 +19,13 @@ export const submitFeedback = createAsyncThunk(
           headers: { Authorization: `Bearer ${token}` }
         }
       );
+      
+      console.log('✅ Submit Response:', response.data);
+      console.log('✅ Submitted Feedback Object:', response.data.data);
+      
       return response.data;
     } catch (error) {
+      console.error('❌ Submit Feedback Error:', error);
       return rejectWithValue(
         error.response?.data?.message || 'Failed to submit feedback'
       );
@@ -30,14 +38,38 @@ export const fetchMyFeedback = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem('token');
+      console.log('🔍 Fetching feedback - Token exists:', !!token);
+      
+      // Add cache-busting parameter and headers
+      const timestamp = new Date().getTime();
+      
       const response = await axios.get(
-        `${import.meta.env.VITE_BASE_URL}/guest-feedback/my-feedback`,
+        `${import.meta.env.VITE_BASE_URL}/guest-feedback/my-feedback?_t=${timestamp}`,
         {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
         }
       );
-      return response.data.data;
+      
+      console.log('✅ Full API Response:', response);
+      console.log('✅ Response Data:', response.data);
+      console.log('✅ Feedback Array:', response.data.data);
+      console.log('✅ Feedback Count:', response.data.data?.length || 0);
+      
+      // The backend returns { status: "success", data: [...] }
+      // So we need response.data.data
+      const feedbackArray = response.data.data || [];
+      console.log('✅ Final Array to Return:', feedbackArray);
+      
+      return feedbackArray;
     } catch (error) {
+      console.error('❌ Fetch My Feedback Error:', error);
+      console.error('❌ Error Status:', error.response?.status);
+      console.error('❌ Error Data:', error.response?.data);
+      
       return rejectWithValue(
         error.response?.data?.message || 'Failed to fetch feedback'
       );
@@ -199,6 +231,15 @@ const feedbackSlice = createSlice({
       if (myIndex !== -1) {
         state.myFeedback[myIndex] = updatedFeedback;
       }
+    },
+    // Add debugging reducer
+    debugFeedbackState: (state) => {
+      console.log('🐛 Current Feedback State:', {
+        myFeedback: state.myFeedback,
+        myFeedbackLength: state.myFeedback?.length,
+        myFeedbackLoading: state.myFeedbackLoading,
+        myFeedbackError: state.myFeedbackError
+      });
     }
   },
   extraReducers: (builder) => {
@@ -209,27 +250,52 @@ const feedbackSlice = createSlice({
         state.submitError = null;
       })
       .addCase(submitFeedback.fulfilled, (state, action) => {
+        console.log('✅ Submit feedback - FULFILLED');
+        console.log('✅ Submit payload:', action.payload);
+        
         state.submitLoading = false;
-        // Add to myFeedback if it's the current user's feedback
-        state.myFeedback.unshift(action.payload.data);
+        
+        // Ensure myFeedback is an array before adding to it
+        if (!Array.isArray(state.myFeedback)) {
+          state.myFeedback = [];
+        }
+        
+        // Add the new feedback to the beginning of the array
+        if (action.payload?.data) {
+          state.myFeedback.unshift(action.payload.data);
+          console.log('✅ Added to myFeedback, new length:', state.myFeedback.length);
+        }
       })
       .addCase(submitFeedback.rejected, (state, action) => {
         state.submitLoading = false;
         state.submitError = action.payload;
       })
       
-      // Fetch My Feedback
+      // Fetch My Feedback - ENHANCED DEBUGGING
       .addCase(fetchMyFeedback.pending, (state) => {
+        console.log('🔄 Fetching feedback - PENDING');
         state.myFeedbackLoading = true;
         state.myFeedbackError = null;
       })
       .addCase(fetchMyFeedback.fulfilled, (state, action) => {
+        console.log('✅ Fetching feedback - FULFILLED');
+        console.log('✅ Payload received:', action.payload);
+        console.log('✅ Is array?', Array.isArray(action.payload));
+        console.log('✅ Payload length:', action.payload?.length);
+        
         state.myFeedbackLoading = false;
-        state.myFeedback = action.payload;
+        state.myFeedback = Array.isArray(action.payload) ? action.payload : [];
+        
+        console.log('✅ State updated, myFeedback length:', state.myFeedback.length);
+        console.log('✅ First feedback item:', state.myFeedback[0]);
       })
       .addCase(fetchMyFeedback.rejected, (state, action) => {
+        console.log('❌ Fetching feedback - REJECTED');
+        console.log('❌ Error payload:', action.payload);
+        
         state.myFeedbackLoading = false;
         state.myFeedbackError = action.payload;
+        state.myFeedback = [];
       })
       
       // Fetch All Feedback (Admin)
@@ -268,7 +334,6 @@ const feedbackSlice = createSlice({
       })
       .addCase(respondToFeedback.fulfilled, (state, action) => {
         state.responseLoading = false;
-        // Update the feedback in the list
         const updatedFeedback = action.payload;
         const index = state.allFeedback.findIndex(f => f.id === updatedFeedback.id);
         if (index !== -1) {
@@ -287,7 +352,6 @@ const feedbackSlice = createSlice({
       })
       .addCase(updateFeedbackStatus.fulfilled, (state, action) => {
         state.responseLoading = false;
-        // Update the feedback in the list
         const updatedFeedback = action.payload;
         const index = state.allFeedback.findIndex(f => f.id === updatedFeedback.id);
         if (index !== -1) {
@@ -305,7 +369,8 @@ export const {
   clearErrors, 
   setFilters, 
   clearFeedback, 
-  updateFeedbackInList 
+  updateFeedbackInList,
+  debugFeedbackState
 } = feedbackSlice.actions;
 
 export default feedbackSlice.reducer;
